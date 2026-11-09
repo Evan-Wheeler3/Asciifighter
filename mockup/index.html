@@ -1,0 +1,723 @@
+<title>Asciifighter Style Mockups</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Shippori+Mincho+B1:wght@600;800&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+/* Layout: one column of large "screenshots", each a live canvas, with a sticky style switcher. Single dark look on purpose (it is a game screen). */
+:root{
+  --ink:#0c0a10;        /* page ground */
+  --panel:#16131c;      /* frame chrome */
+  --line:#2c2635;       /* hairlines */
+  --paper:#ece4d2;      /* primary text */
+  --muted:#968aa3;      /* secondary text */
+  --vermilion:#e0452f;  /* single accent */
+  --f-display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",Georgia,serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono","DejaVu Sans Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html{background:var(--ink)}
+body{background:var(--ink);color:var(--paper);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:1180px;margin:0 auto}
+header{padding-block:48px 28px;display:grid;gap:14px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(34px,6vw,64px);line-height:1.02;margin:0;text-wrap:balance;letter-spacing:.01em}
+h1 em{font-style:normal;color:var(--vermilion)}
+.lede{max-width:64ch;color:#cfc5d8;margin:0}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--ink) 88%,transparent);backdrop-filter:blur(8px);
+  border-block:1px solid var(--line);padding-block:10px;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--ink)}
+.group{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.group > span{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{all:unset;cursor:pointer;font-family:var(--f-mono);font-size:13px;padding:7px 12px;color:var(--muted);border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button:hover{color:var(--paper);background:#1d1924}
+.seg button[aria-pressed="true"]{color:var(--ink);background:var(--paper)}
+.seg button:focus-visible{outline:2px solid var(--vermilion);outline-offset:-2px}
+.shots{display:grid;gap:44px;margin-top:32px}
+figure{margin:0;display:grid;gap:12px;min-width:0}
+.screen{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.chrome{display:flex;justify-content:space-between;gap:12px;font-family:var(--f-mono);font-size:11px;color:var(--muted);padding:7px 12px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.chrome b{color:var(--paper);font-weight:400}
+canvas{display:block;width:100%;height:auto;max-width:100%}
+.screen.phosphor canvas{filter:drop-shadow(0 0 3px rgba(80,255,140,.35))}
+.screen.phosphor::after{content:"";position:absolute;inset:28px 0 0;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,rgba(0,0,0,.28) 0 1px,transparent 1px 3px)}
+figcaption{display:grid;grid-template-columns:minmax(0,180px) minmax(0,1fr);gap:4px 24px}
+figcaption h2{font-family:var(--f-display);font-size:22px;margin:0;font-weight:600}
+figcaption p{margin:0;color:#cfc5d8;max-width:70ch}
+.decide{margin-top:56px;border-top:1px solid var(--line);padding-top:28px;display:grid;gap:16px}
+.decide h2{font-family:var(--f-display);font-size:28px;margin:0}
+.decide ol{margin:0;padding-left:1.3em;display:grid;gap:8px;max-width:72ch}
+.decide li::marker{color:var(--vermilion);font-family:var(--f-mono)}
+.decide code{font-family:var(--f-mono);font-size:13px;color:var(--paper);background:#1d1924;padding:1px 5px;border-radius:4px}
+@media (max-width:640px){figcaption{grid-template-columns:1fr}.chrome .hide-sm{display:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Style mockup · v0.1 · not final art</div>
+    <h1>Asciifighter <em>/</em> four screens to lock the look</h1>
+    <p class="lede">A side-scrolling sword fighter drawn entirely in text characters. Each screen below is rendered live by the same character-grid engine the game will use, so what you see here is what ships. Switch palette and rendering mode to compare directions.</p>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="Style options">
+    <div class="group"><span>Palette</span>
+      <div class="seg" id="pal">
+        <button type="button" data-v="dusk" aria-pressed="true">Dusk</button>
+        <button type="button" data-v="sumi" aria-pressed="false">Sumi-e ink</button>
+        <button type="button" data-v="phosphor" aria-pressed="false">Phosphor</button>
+      </div>
+    </div>
+    <div class="group"><span>Rendering</span>
+      <div class="seg" id="mode">
+        <button type="button" data-v="rich" aria-pressed="true">Rich cells</button>
+        <button type="button" data-v="term" aria-pressed="false">Pure ASCII</button>
+      </div>
+    </div>
+    <div class="group"><span>Motion</span>
+      <div class="seg" id="motion">
+        <button type="button" data-v="on" aria-pressed="true">Live</button>
+        <button type="button" data-v="off" aria-pressed="false">Freeze</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="shots">
+    <figure>
+      <div class="screen"><div class="chrome"><span><b>01</b> title</span><span class="hide-sm">150 × 45 cells</span><span class="fps">— fps</span></div><canvas data-scene="title" aria-label="Title screen: a ronin on a cliff before a rising moon, falling petals, menu on the left"></canvas></div>
+      <figcaption><h2>Title</h2><p>Chunky block-letter logo with a two-tone gradient, parallax ridges, and a ronin silhouetted against the moon. Petals and grass move constantly so even the menu feels alive.</p></figcaption>
+    </figure>
+    <figure>
+      <div class="screen"><div class="chrome"><span><b>02</b> stage 1-2 · the cedar road</span><span class="hide-sm">150 × 45 cells</span><span class="fps">— fps</span></div><canvas data-scene="road" aria-label="Gameplay: the ronin finishes a sweeping cut through a bandit on a forest road at sunset, a second bandit charges"></canvas></div>
+      <figcaption><h2>Road fight</h2><p>Core gameplay. Four parallax layers scroll at different speeds. The sword leaves a fading arc; hits flash the enemy white, throw sparks and pop a damage number. HUD stays in the corners.</p></figcaption>
+    </figure>
+    <figure>
+      <div class="screen"><div class="chrome"><span><b>03</b> perfect parry · slow-mo</span><span class="hide-sm">150 × 45 cells</span><span class="fps">— fps</span></div><canvas data-scene="parry" aria-label="A perfect parry in the rain: two blades meet in a spark burst in front of the full moon, framed by cinematic bars"></canvas></div>
+      <figcaption><h2>Parry</h2><p>Timing a block triggers a short freeze: letterbox bars, manga focus lines, a big spark burst at the point where the blades cross. Rain keeps falling slowly through it.</p></figcaption>
+    </figure>
+    <figure>
+      <div class="screen"><div class="chrome"><span><b>04</b> boss · the ashen gate</span><span class="hide-sm">150 × 45 cells</span><span class="fps">— fps</span></div><canvas data-scene="boss" aria-label="Boss fight: the ronin dashes through the air at a giant oni with a studded club in front of a burning pagoda"></canvas></div>
+      <figcaption><h2>Boss</h2><p>Simulated fire behind a burning pagoda, rising embers, and a giant oni. The airborne dash leaves afterimages so fast moves read as smooth motion. Boss health spans the bottom.</p></figcaption>
+    </figure>
+  </div>
+
+  <section class="decide">
+    <h2>What to lock in</h2>
+    <ol>
+      <li><strong>Palette.</strong> Dusk (full color), Sumi-e (ink on paper, one red), or Phosphor (green CRT).</li>
+      <li><strong>Rendering.</strong> Rich cells uses background colors and sub-cell blocks for smooth ridges and bars. Pure ASCII sticks to the 95 printable characters.</li>
+      <li><strong>Sprite scale.</strong> The fighters are about 15 rows tall. Bigger means more detail and fewer enemies on screen.</li>
+      <li><strong>Effects level.</strong> Arcs, sparks, afterimages and focus lines can be toned down if the screen feels busy.</li>
+      <li><strong>Platform.</strong> Browser (this engine, 60 fps canvas) or a real terminal build. The art direction carries over either way.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(()=>{
+const W=150,H=45,ASPECT=2.0;
+/* ---------- utils ---------- */
+const hexCache=new Map();
+function rgb(h){let v=hexCache.get(h);if(v)return v;const n=parseInt(h.slice(1),16);v=[n>>16&255,n>>8&255,n&255];hexCache.set(h,v);return v}
+function hex(r,g,b){return"#"+((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1)}
+function mix(a,b,t){t=t<0?0:t>1?1:t;const A=rgb(a),B=rgb(b);return hex(Math.round(A[0]+(B[0]-A[0])*t),Math.round(A[1]+(B[1]-A[1])*t),Math.round(A[2]+(B[2]-A[2])*t))}
+function grad(st,t){t=t<0?0:t>1?1:t;const s=t*(st.length-1),i=Math.min(st.length-2,Math.floor(s));return mix(st[i],st[i+1],s-i)}
+function h1(i,s){let x=Math.imul((i|0)^Math.imul(s|0,374761393),668265263);x=Math.imul(x^(x>>>13),1274126177);return((x^(x>>>16))>>>0)/4294967296}
+function h2(x,y,s){return h1(Math.imul(x|0,7919)+Math.imul(y|0,104729),s)}
+function vn(x,s){const i=Math.floor(x),f=x-i,u=f*f*(3-2*f);return h1(i,s)*(1-u)+h1(i+1,s)*u}
+function fbm(x,s,o=4){let a=0,m=.5,f=1,n=0;for(let k=0;k<o;k++){a+=m*vn(x*f,s+k*31);n+=m;m*=.5;f*=2}return a/n}
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+
+/* ---------- palettes ---------- */
+const PAL={
+ dusk:{bg:"#0b0912",
+  skyDusk:["#140c2a","#2d1846","#5e2456","#a8384e","#e46a43","#f7b267"],
+  skyNight:["#04060f","#0b1330","#18224a","#2a3560"],
+  skyFire:["#120406","#3a0a0c","#7a1a10","#c2421a","#f08a2a"],
+  star:"#e9ddff",moon:"#fff1cc",moonShade:"#e8c58a",sun:"#ffd27a",sunShade:"#ff9a4a",cloud:"#6b3d6e",cloudHi:"#c86a6a",
+  far:"#4b2a5c",far2:"#6a3460",mid:"#2a1736",near:"#120a18",torii:"#7a2230",
+  ground:"#1a1018",groundHi:"#4a2c34",stone:"#7d6272",grass:"#3e5536",grassHi:"#9aae62",
+  hat:"#d0aa6c",skin:"#efcaa4",cloth:"#efe7d4",sash:"#e0303c",dark:"#3a3550",feet:"#9a8a78",eye:"#ffffff",
+  steel:"#a9dcff",steelHi:"#ffffff",steelDim:"#3e5a86",hilt:"#e0303c",
+  foe:"#9a744c",foeDark:"#5a3e2a",foeAccent:"#d4a838",foeSkin:"#c8946e",
+  duel:"#8a90c4",duelDark:"#4a4f7a",duelAccent:"#c9d2ff",
+  oni:"#c23a2e",oniDark:"#6a1812",oniHorn:"#efe2c4",oniEye:"#ffe94a",club:"#4a3424",stud:"#d6d0c4",
+  temple:"#0e0608",window:"#ffb24a",
+  blood:"#ff3b48",spark:"#ffcf5a",sparkHi:"#ffffff",
+  fire:["#3a0806","#8a1808","#d23c0c","#f57a14","#ffbc3a","#fff3b0"],ember:"#ffae42",smoke:"#2a1416",
+  rain:"#6f7fb6",rainHi:"#b8c6f0",petal:"#ffb3c8",leaf:"#e0903a",focus:"#3a4570",
+  ui:"#f3e9d2",uiDim:"#8a7a96",uiAccent:"#ffcc66",panel:"#0b0912",
+  hp:["#8a1424","#ff5050"],ki:["#1c4a86","#6ad6ff"],boss:["#6a0c0a","#ff6a2a"],
+  title:["#fff4c6","#ffc24a","#e2482a"],titleShadow:"#3c0f2e",letterbox:"#000000"},
+ sumi:{bg:"#ebe4d3",
+  skyDusk:["#efe9da","#ebe4d3","#e6dcc6","#e0d2b8"],
+  skyNight:["#e2dccd","#e6e0d1","#ebe4d3"],
+  skyFire:["#e6dccb","#e8d6c0","#e6c4a8"],
+  star:"#b9b0a0",moon:"#c8281e",moonShade:"#a8201a",sun:"#c8281e",sunShade:"#a8201a",cloud:"#b8af9e",cloudHi:"#8a8274",
+  far:"#c4baa6",far2:"#a99e8a",mid:"#7a7264",near:"#2a2622",torii:"#9a3a2a",
+  ground:"#d4cab4",groundHi:"#5a5348",stone:"#6a6256",grass:"#4a443a",grassHi:"#2a2622",
+  hat:"#3a342c",skin:"#2a2622",cloth:"#1c1a17",sash:"#c8281e",dark:"#1c1a17",feet:"#3a342c",eye:"#c8281e",
+  steel:"#2a2622",steelHi:"#000000",steelDim:"#a99e8a",hilt:"#c8281e",
+  foe:"#3a342c",foeDark:"#1c1a17",foeAccent:"#5a5348",foeSkin:"#3a342c",
+  duel:"#3a342c",duelDark:"#1c1a17",duelAccent:"#5a5348",
+  oni:"#1c1a17",oniDark:"#3a342c",oniHorn:"#6a6256",oniEye:"#c8281e",club:"#2a2622",stud:"#6a6256",
+  temple:"#1c1a17",window:"#c8281e",
+  blood:"#c8281e",spark:"#c8281e",sparkHi:"#1c1a17",
+  fire:["#e0cdb6","#d6a48a","#c8604a","#c8281e","#7a1810","#1c1a17"],ember:"#c8281e",smoke:"#cfc5b2",
+  rain:"#a99e8a",rainHi:"#5a5348",petal:"#c8281e",leaf:"#7a7264",focus:"#cfc5b2",
+  ui:"#1c1a17",uiDim:"#8a8274",uiAccent:"#c8281e",panel:"#ebe4d3",
+  hp:["#7a1810","#c8281e"],ki:["#3a342c","#1c1a17"],boss:["#7a1810","#c8281e"],
+  title:["#1c1a17","#2a2622","#c8281e"],titleShadow:"#cfc5b2",letterbox:"#1c1a17"},
+};
+(()=>{ // phosphor palette built from one green ramp
+ const g=t=>grad(["#020904","#0a3018","#167a38","#3ad06a","#a8ffc4","#f0fff4"],t);
+ const P={bg:"#020904"};
+ const lv={skyDusk:[g(.05),g(.1),g(.16)],skyNight:[g(.02),g(.07),g(.12)],skyFire:[g(.06),g(.13),g(.22)],
+  star:.55,moon:.85,moonShade:.6,sun:.85,sunShade:.6,cloud:.3,cloudHi:.42,far:.24,far2:.3,mid:.18,near:.09,torii:.36,
+  ground:.1,groundHi:.32,stone:.4,grass:.32,grassHi:.5,hat:.7,skin:.8,cloth:.9,sash:1,dark:.45,feet:.55,eye:1,
+  steel:.85,steelHi:1,steelDim:.35,hilt:1,foe:.62,foeDark:.42,foeAccent:.8,foeSkin:.7,duel:.55,duelDark:.35,duelAccent:.8,
+  oni:.66,oniDark:.4,oniHorn:.95,oniEye:1,club:.38,stud:.85,temple:.05,window:.8,blood:1,spark:.9,sparkHi:1,
+  ember:.85,smoke:.14,rain:.36,rainHi:.6,petal:.75,leaf:.6,focus:.22,ui:.9,uiDim:.45,uiAccent:1,panel:0,letterbox:0,titleShadow:.18};
+ for(const k in lv)P[k]=Array.isArray(lv[k])?lv[k]:g(lv[k]);
+ P.fire=[g(.08),g(.2),g(.38),g(.6),g(.82),g(1)];
+ P.hp=[g(.4),g(.95)];P.ki=[g(.25),g(.7)];P.boss=[g(.4),g(1)];P.title=[g(1),g(.82),g(.55)];
+ PAL.phosphor=P;
+})();
+
+/* ---------- grid ---------- */
+class Grid{
+ constructor(){this.ch=new Array(W*H);this.fg=new Array(W*H);this.bg=new Array(W*H);this.clear()}
+ clear(){this.ch.fill(" ");this.fg.fill(null);this.bg.fill(null)}
+ set(x,y,c,fg,bg){x=Math.round(x);y=Math.round(y);if(x<0||y<0||x>=W||y>=H)return;const i=y*W+x;if(c!=null){this.ch[i]=c;this.fg[i]=fg}if(bg)this.bg[i]=bg}
+ getBg(x,y,d){x=Math.round(x);y=Math.round(y);if(x<0||y<0||x>=W||y>=H)return d;return this.bg[y*W+x]||d}
+ text(x,y,s,fg,bg){for(let i=0;i<s.length;i++)if(s[i]!==" "||bg)this.set(x+i,y,s[i],fg,bg)}
+ tint(x,y,col,t){x=Math.round(x);y=Math.round(y);if(x<0||y<0||x>=W||y>=H)return;const i=y*W+x;if(this.bg[i])this.bg[i]=mix(this.bg[i],col,t)}
+}
+
+/* ---------- sprites ---------- */
+const SWAP={"/":"\\","\\":"/","(":")",")":"(","[":"]","]":"[","{":"}","}":"{","<":">",">":"<","`":"'","'":"`","d":"b","b":"d"};
+function mirrorDef(def){
+ const w=Math.max(...def.art.map(r=>r.length));
+ const flip=s=>s.padEnd(w," ").split("").reverse().map(c=>SWAP[c]||c).join("");
+ return {...def,art:def.art.map(flip),roles:def.roles.map(r=>r.length>1?r.padEnd(w," ").split("").reverse().join(""):r)};
+}
+function prep(def){
+ const rows=def.art.map(r=>r.replace(/\s+$/,""));const h=rows.length,w=Math.max(...rows.map(r=>r.length));
+ const grid=rows.map(r=>r.padEnd(w," "));const ext=grid.map(()=>new Array(w).fill(false));const st=[];
+ for(let x=0;x<w;x++){st.push([x,0],[x,h-1])}for(let y=0;y<h;y++){st.push([0,y],[w-1,y])}
+ while(st.length){const[x,y]=st.pop();if(x<0||y<0||x>=w||y>=h||ext[y][x]||grid[y][x]!==" ")continue;ext[y][x]=true;st.push([x+1,y],[x-1,y],[x,y+1],[x,y-1])}
+ return {grid,ext,w,h,roles:def.roles,charRoles:def.charRoles||{}};
+}
+function sprite(def){return {R:prep(def),L:prep(mirrorDef(def))}}
+
+const PLAYER_GUARD=sprite({art:[
+"         _.---._",
+"     __.'_______'.__",
+"    '~~~~~~~~~~~~~~~'",
+"         ( -'  )",
+"          \\_  /",
+"       .--'  '--.",
+"      / .' \\/ '. \\",
+"     / /  |##|  \\ \\__",
+"     \\ \\  |##|   '--=O",
+"      '-' |##|",
+"         /'''''\\",
+"        /   |   \\",
+"       /   / \\   \\",
+"      /___/   \\___\\",
+"       (__)   (__)"],
+roles:["h","h","h","s","s","c","c","c","c","c","d","d","d","d","k"],charRoles:{"#":"r","=":"m","O":"s","-":null}});
+const PLAYER_SLASH=sprite({art:[
+"            _.---._",
+"        __.'_______'.__",
+"       '~~~~~~~~~~~~~~~'",
+"            ( -'  )",
+"             \\_  /",
+"          .--'  '--.______",
+"         / .' \\/ '._____=O",
+"        / /  |##|",
+"       ( (   |##|",
+"        '-'  |##|",
+"            /'''''\\",
+"           /   /   '-.",
+"          /   /      '-.",
+"      ___/   /          '-.__",
+"     (______/             '.__)"],
+roles:["h","h","h","s","s","c","c","c","c","c","d","d","d","d","k"],charRoles:{"#":"r","=":"m","O":"s"}});
+const BANDIT=sprite({art:[
+"          .~~~~.",
+"      ~~~(  o o )",
+"     ~    \\ -- /",
+"        .-'----'-.",
+"       /  /    \\  \\",
+"      /  / |  | \\  \\__",
+"     (__/  |  |  '---=O",
+"           |==|",
+"          /    \\",
+"         /  /\\  \\",
+"        /  /  \\  \\",
+"       /  /    \\  \\",
+"      (__/      \\__)"],
+roles:["r","s","s","c","c","c","c","r","d","d","d","d","k"],charRoles:{"~":"r","o":"e","=":"m","O":"s"}});
+const DUELIST=sprite({art:[
+"         .-----.",
+"        /       \\",
+"       |  =   =  |",
+"        \\  ___  /",
+"         '.___.'",
+"       .--'  '--.",
+"      / .' \\/ '. \\",
+"     / /  |##|  \\ \\__",
+"     \\ \\  |##|   '--=O",
+"      '-' |##|",
+"         /'''''\\",
+"        /   |   \\",
+"       /   / \\   \\",
+"      /___/   \\___\\",
+"       (__)   (__)"],
+roles:["c","c","c","c","c","c","c","c","c","c","d","d","d","d","k"],charRoles:{"=":"e","#":"r","O":"s"}});
+const ONI=sprite({art:[
+"     /\\                          /\\",
+"    /  \\                        /  \\",
+"    \\   '.     _.------._     .'   /",
+"     '.   '-.-'          '-.-'   .'",
+"       '-.  /  .--.  .--.  \\  .-'",
+"          | |  (@@)  (@@)  | |",
+"          | |      /\\      | |",
+"          |  \\   .____.   /  |",
+"          |   \\  |VVVV|  /   |",
+"           \\   '.|^^^^|.'   /",
+"        ____'-.__'----'__.-'____",
+"      .'    /    \\    /    \\    '.",
+"     /     /  .-. \\  / .-.  \\     \\",
+"    /    .'  (   ) \\/ (   )  '.    \\",
+"   /    /     '-'      '-'     \\    \\",
+"  (    (     .-''''''''''-.     )    )",
+"   \\    \\   |======##======|   /    /",
+"    O__/    |    |    |    |    \\__.'",
+"            /    |    |    \\",
+"           /    /      \\    \\",
+"          /    /        \\    \\",
+"         /____/          \\____\\",
+"        (_____)          (_____)"],
+roles:["n","n","n","c","c","c","c","c","c","c","c","c","c","c","c","c","m","c","d","d","d","d","k"],
+charRoles:{"@":"e","V":"n","^":"n","#":"m","O":"c"}});
+
+const PAGODA=sprite({art:[
+"                    |",
+"                    o",
+"                    |",
+"                   _|_",
+"             ._.-'\"   \"'-._.",
+"            '~-.._________..-~'",
+"                |  [] []  |",
+"          ._.-'\"           \"'-._.",
+"         '~-..._______________...-~'",
+"              |  [] [] [] []  |",
+"       ._.-'\"                     \"'-._.",
+"      '~-...._______________________....-~'",
+"            |  [] [] [] [] [] []  |",
+"    ._.-'\"                             \"'-._.",
+"   '~-....___________________________________.-~'",
+"           |    []  []  [====]  []  []    |",
+"        ___|______________________________|___",
+"       |__________________________________________|"],
+roles:["t","t","t","t","t","t","t","t","t","t","t","t","t","t","t","t","t","t"],charRoles:{"[":"w","]":"w","=":"w"}});
+function drawSprite(g,S,x0,y0,cmap,P,M,o={}){
+ const s=o.mirror?S.L:S.R;const anchors=[];
+ for(let y=0;y<s.h;y++){
+  const sh=o.shear?Math.round(o.shear*(s.h-1-y)):0;
+  const rr=s.roles[y];
+  for(let x=0;x<s.w;x++){
+   const c=s.grid[y][x];const role=rr.length>1?(rr[x]||" "):((c in s.charRoles&&s.charRoles[c])||rr);
+   let col=cmap[role]||cmap.c;
+   if(o.flash)col=P.sparkHi;
+   if(o.tint)col=o.tint;
+   if(o.fade)col=mix(col,o.fadeTo||P.bg,o.fade);
+   const fill=o.fillTo||mix(cmap[rr.length>1?"c":rr]||col,P.bg,o.tint?.55:.62);
+   const X=x0+x+sh,Y=y0+y;
+   if(c===" "){
+    if(s.ext[y][x])continue;
+    if(M.rich&&!o.ghost)g.set(X,Y," ",null,o.flash?mix(P.sparkHi,P.bg,.4):fill);else if(!o.ghost)g.set(X,Y," ",null);
+    continue;
+   }
+   if(c==="O")anchors.push([X,Y]);
+   g.set(X,Y,c==="O"?"o":c,col,M.rich&&!o.ghost?(o.flash?mix(P.sparkHi,P.bg,.4):fill):null);
+  }
+ }
+ return anchors;
+}
+
+/* ---------- primitives ---------- */
+function slopeChar(dx,dyScreen,frac){
+ const a=((Math.atan2(-dyScreen,dx)*180/Math.PI)%180+180)%180;
+ if(a<22||a>158)return frac>.62?"_":"-";if(a<68)return"/";if(a<112)return"|";return"\\";
+}
+function line(g,x0,y0,x1,y1,col,o={}){
+ const dx=x1-x0,dy=y1-y0,len=Math.hypot(dx,dy*ASPECT),n=Math.max(1,Math.ceil(len*2.2));
+ let last=-1;
+ for(let i=0;i<=n;i++){const t=i/n,x=x0+dx*t,y=y0+dy*t,X=Math.round(x),Y=Math.round(y),k=Y*W+X;if(k===last)continue;last=k;
+  const c=o.char||slopeChar(dx,dy*ASPECT,y-Math.floor(y)+.5-(y-Math.round(y)<0?0:0));
+  const cc=o.grad?grad(o.grad,t):col;
+  g.set(X,Y,(i===n&&o.tip)?o.tip:c,cc,o.bg||null)}
+}
+function blade(g,x0,y0,ang,len,P,o={}){ // ang in screen degrees, len in columns
+ const r=ang*Math.PI/180,x1=x0+Math.cos(r)*len,y1=y0-Math.sin(r)*len/ASPECT;
+ line(g,x0+Math.cos(r),y0-Math.sin(r)/ASPECT,x1,y1,null,{grad:o.grad||[P.steel,P.steelHi],tip:o.tip});
+ return [x1,y1];
+}
+function arcTrail(g,cx,cy,R,a0,a1,P,M,layers=4){
+ for(let k=0;k<layers;k++){
+  const r=R-k*1.1,n=Math.ceil(Math.abs(a1-a0)/180*Math.PI*r*2.4);
+  for(let i=0;i<=n;i++){const t=i/n,a=(a0+(a1-a0)*t)*Math.PI/180;
+   const x=cx+Math.cos(a)*r,y=cy-Math.sin(a)*r/ASPECT;
+   const tx=-Math.sin(a)*Math.sign(a1-a0),ty=Math.cos(a)*Math.sign(a1-a0);
+   const life=Math.pow(t,1.6)*(1-k/layers*.8);
+   if(life<.05)continue;
+   const ch=k<2?slopeChar(tx,-ty,.5):(t>.7?"-":".");
+   const col=grad([P.steelDim,P.steel,P.steelHi],life);
+   g.set(x,y,ch,col);
+   if(M.rich&&k<2&&life>.35)g.tint(x,y,P.steel,.22*life);
+  }
+ }
+}
+function burst(g,x,y,P,M,t,o={}){
+ const n=o.n||12,L=o.len||10;
+ if(M.rich){for(let dy=-o.glow;dy<=o.glow;dy++)for(let dx=-o.glow*2;dx<=o.glow*2;dx++){const d=Math.hypot(dx/2,dy)/o.glow;if(d<1)g.tint(x+dx,y+dy,P.spark,(1-d)*(1-d)*.7)}}
+ for(let i=0;i<n;i++){const a=i/n*360+h1(i,7)*22;const len=L*(.45+.55*h1(i,3))*(.82+.18*Math.sin(t*14+i*1.7));
+  const r=a*Math.PI/180,r0=1.4;
+  const xs=x+Math.cos(r)*r0,ys=y-Math.sin(r)*r0/ASPECT,xe=x+Math.cos(r)*len,ye=y-Math.sin(r)*len/ASPECT;
+  line(g,xs,ys,xe,ye,null,{grad:[P.sparkHi,P.spark],tip:h1(i,9)>.5?"*":"+"});}
+ g.set(x,y,"*",P.sparkHi);g.set(x-1,y,"<",P.sparkHi);g.set(x+1,y,">",P.sparkHi);
+ if(o.ring){const rr=(t*o.ringSpeed)%1;const R=L*1.3*rr;const m=Math.ceil(R*6);
+  for(let i=0;i<m;i++){const a=i/m*Math.PI*2;g.set(x+Math.cos(a)*R,y-Math.sin(a)*R/ASPECT,rr<.5?"o":".",mix(P.spark,P.bg,rr))}}
+}
+function sky(g,P,M,stops,y0,y1){
+ for(let y=0;y<H;y++){const t=(y-y0)/(y1-y0),col=grad(stops,t);
+  for(let x=0;x<W;x++){
+   if(M.rich)g.set(x,y,null,null,col);
+   else if(t>.55){const d=(t-.55)/.45,hh=h2(x,y,11);if(hh<d*.32)g.set(x,y,hh<d*.12?"-":".",mix(col,P.bg,.1))}
+  }}
+}
+function stars(g,P,M,t,ymax,n,seed=1){
+ for(let i=0;i<n;i++){const x=Math.floor(h1(i,seed)*W),y=Math.floor(h1(i,seed+1)*ymax);const tw=.5+.5*Math.sin(t*(1+h1(i,seed+2)*3)+i);
+  const b=h1(i,seed+3);g.set(x,y,b>.92?"+":b>.6?"·":".",mix(g.getBg(x,y,P.bg),P.star,.35+.65*tw))}
+}
+function disc(g,P,M,cx,cy,R,lit,shade,o={}){
+ const glow=o.glow||0;
+ for(let y=Math.floor(cy-R/ASPECT-glow-2);y<=cy+R/ASPECT+glow+2;y++)for(let x=Math.floor(cx-R-glow*2-2);x<=cx+R+glow*2+2;x++){
+  const dx=x-cx,dy=(y-cy)*ASPECT,d=Math.hypot(dx,dy)/R;
+  if(d<=1){
+   let mar=0;for(const[mx,my,mr]of[[-.35,-.25,.3],[.2,.15,.38],[-.1,.5,.22]]){const q=Math.hypot(dx/R-mx,dy/R-my)/mr;if(q<1)mar=Math.max(mar,1-q*q)}
+   const sh=clamp((dx/R)*-.4+.35+mar*.55,0,1); // lit from the left
+   if(M.rich){g.set(x,y," ",null,mix(lit,shade,sh*.85));if(mar>.55&&h2(x,y,o.seed||5)>.6)g.set(x,y,"·",mix(lit,shade,.95))}
+   else{const ramp="@%#*+=-:.";const k=Math.floor(clamp(d*.45+sh*.55,0,.999)*ramp.length);g.set(x,y,ramp[k],mix(lit,shade,sh))}
+  }else if(M.rich){const rim=d<1.15?.45*(1.15-d)/.15:0;const f=glow?1-(d-1)/(glow/R*1.6+.4):0;const k=Math.max(rim,f>0?f*f*.35:0);if(k>0)g.tint(x,y,lit,k)}
+ }
+}
+const LB=[" ","▁","▂","▃","▄","▅","▆","▇","█"];
+function ridge(g,P,M,o){ // o:{base,amp,freq,seed,col,col2,scroll,fn,tex}
+ for(let x=0;x<W;x++){
+  const wx=x+(o.scroll||0);
+  const h=o.fn?o.fn(x,wx):o.base-o.amp*fbm(wx*o.freq,o.seed,o.oct||4);
+  const top=Math.floor(h),frac=h-top;
+  const hl=o.fn?o.fn(x-1,wx-1):o.base-o.amp*fbm((wx-1)*o.freq,o.seed,o.oct||4);
+  const hr=o.fn?o.fn(x+1,wx+1):o.base-o.amp*fbm((wx+1)*o.freq,o.seed,o.oct||4);
+  for(let y=Math.max(0,top);y<H;y++){
+   const depth=y-top,col=o.col2?mix(o.col,o.col2,clamp(depth/12,0,1)):o.col;
+   if(y===top){
+    if(M.rich){const k=Math.round((1-frac)*8);if(k>0)g.set(x,y,LB[k],col)}
+    else g.set(x,y,slopeChar(2,(hr-hl)*ASPECT,frac),mix(col,o.edge||col,.0));
+   }else{
+    if(M.rich)g.set(x,y," ",null,col);
+    else{const n=h2(Math.floor(wx),y,o.seed+9);const tx=o.tex||" .:;";const k=Math.floor(clamp(n*(1+depth*.04),0,.999)*tx.length);g.set(x,y,tx[k],mix(col,P.bg,.05))}
+   }
+  }
+ }
+}
+function pine(g,P,M,x,base,ht,col,seed){
+ const tiers=3,per=Math.max(2,Math.round(ht*.8/tiers));
+ g.set(x,base-ht-0,"^",col);
+ for(let t=0;t<tiers;t++)for(let r=0;r<per;r++){
+  const y=base-ht+1+t*per+r,hw=1+r+t;
+  for(let dx=-hw;dx<=hw;dx++){
+   const c=dx===-hw?"/":dx===hw?"\\":(h2(x+dx,y,seed)>.55?"^":M.rich?" ":(r===per-1?"_":" "));
+   g.set(x+dx,y,c,col,M.rich?mix(col,P.bg,.25):null);
+   if(!M.rich&&c===" ")g.set(x+dx,y," ",col);
+  }
+ }
+ for(let y=base-ht+1+tiers*per;y<=base;y++)g.set(x,y,"|",col);
+}
+function clouds(g,P,M,t,y0,y1,speed,seed,thr){
+ for(let y=y0;y<=y1;y++)for(let x=0;x<W;x++){
+  const v=fbm((x+t*speed*(1+(y-y0)*.08))*.035,seed+y*3,4);
+  if(v>thr){const k=(v-thr)/(1-thr);
+   if(M.rich){g.tint(x,y,k>.35?P.cloudHi:P.cloud,.1+.22*k);if(k>.55&&h2(x,y,seed)>.7)g.set(x,y,"~",mix(P.cloudHi,P.sun,.25))}
+   else if(k>.22&&h2(x,y,seed)>.35)g.set(x,y,k>.55?"=":k>.35?"~":"-",mix(P.cloud,P.cloudHi,k))}
+ }
+}
+/* pixel font for logo / callouts */
+const FONT={A:[".###.","#...#","#...#","#####","#...#","#...#","#...#"],C:[".####","#....","#....","#....","#....","#....",".####"],
+E:["#####","#....","#....","####.","#....","#....","#####"],F:["#####","#....","#....","####.","#....","#....","#...."],
+G:[".####","#....","#....","#..##","#...#","#...#",".###."],H:["#...#","#...#","#...#","#####","#...#","#...#","#...#"],
+I:["#####","..#..","..#..","..#..","..#..","..#..","#####"],P:["####.","#...#","#...#","####.","#....","#....","#...."],
+R:["####.","#...#","#...#","####.","#.#..","#..#.","#...#"],S:[".####","#....","#....",".###.","....#","....#","####."],
+T:["#####","..#..","..#..","..#..","..#..","..#..","..#.."],Y:["#...#","#...#",".#.#.","..#..","..#..","..#..","..#.."]," ":[".....",".....",".....",".....",".....",".....","....."]};
+function bigText(g,P,M,str,x,y,cols,shadow,pw=2,gap=2){
+ const glyph=M.rich?"█":"#";let cx=x;
+ for(const ch of str){const f=FONT[ch];if(!f){cx+=pw*3;continue}
+  for(let r=0;r<7;r++)for(let c=0;c<5;c++)if(f[r][c]==="#")for(let k=0;k<pw;k++){
+   g.set(cx+c*pw+k+1,y+r+1,M.rich?"█":":",shadow);
+  }
+  for(let r=0;r<7;r++)for(let c=0;c<5;c++)if(f[r][c]==="#")for(let k=0;k<pw;k++){
+   const col=grad(cols,r/6);g.set(cx+c*pw+k,y+r,glyph,col);
+   if(M.rich&&r===0)g.set(cx+c*pw+k,y+r,"▀",mix(col,"#ffffff",.5),grad(cols,.15));
+  }
+  cx+=5*pw+gap;}
+ return cx;
+}
+function hbar(g,P,M,x,y,w,frac,cols,o={}){
+ const parts=["","▏","▎","▍","▌","▋","▊","▉"];
+ if(M.rich){
+  const full=frac*w,n=Math.floor(full),p=Math.floor((full-n)*8);
+  for(let i=0;i<w;i++){const col=grad(cols,i/w);
+   if(i<n)g.set(x+i,y,"█",col);else if(i===n&&p>0){g.set(x+i,y,parts[p],col,mix(P.panel,cols[0],.25))}
+   else if(o.ghost&&i<o.ghost*w)g.set(x+i,y,"█",mix(P.uiAccent,P.bg,.25));
+   else g.set(x+i,y," ",null,mix(P.panel,cols[0],.25));}
+ }else{
+  g.set(x-1,y,"[",P.uiDim);g.set(x+w,y,"]",P.uiDim);const n=Math.round(frac*w);
+  for(let i=0;i<w;i++){if(i<n)g.set(x+i,y,"#",grad(cols,i/w));else if(o.ghost&&i<o.ghost*w)g.set(x+i,y,"=",P.uiAccent);else g.set(x+i,y,"-",P.uiDim)}
+ }
+}
+function panel(g,P,M,x,y,w,h){
+ const B=M.rich?["╭","╮","╰","╯","─","│"]:["+","+","+","+","-","|"];const c=P.uiDim;
+ for(let yy=y;yy<y+h;yy++)for(let xx=x;xx<x+w;xx++){
+  const edgeY=yy===y||yy===y+h-1,edgeX=xx===x||xx===x+w-1;let ch=" ";
+  if(edgeY&&edgeX)ch=yy===y?(xx===x?B[0]:B[1]):(xx===x?B[2]:B[3]);else if(edgeY)ch=B[4];else if(edgeX)ch=B[5];
+  g.set(xx,yy,ch,c,M.rich?mix(g.getBg(xx,yy,P.bg),P.panel,.72):null);
+  if(!M.rich&&ch===" ")g.set(xx,yy," ",c);
+ }
+}
+function hud(g,P,M,o){
+ panel(g,P,M,2,1,40,6);
+ g.text(4,2,"RONIN",P.ui);g.text(10,2,"· LV 7",P.uiDim);g.text(29,2,"⟡ 3",P.uiAccent);
+ if(!M.rich)g.text(29,2,"* 3",P.uiAccent);
+ g.text(4,3,"HP",P.uiDim);hbar(g,P,M,8,3,31,o.hp,P.hp,{ghost:o.hpGhost});
+ g.text(4,4,"KI",P.uiDim);hbar(g,P,M,8,4,31,o.ki,P.ki);
+ g.text(4,5,o.sub||"[J] cut  [K] parry  [L] dash",P.uiDim);
+ const sc=o.score.padStart(8,"0");g.text(W-3-sc.length,2,sc,P.ui);g.text(W-3-sc.length-6,2,"SCORE",P.uiDim);
+ if(o.combo){const s=`x${o.combo}`;g.text(W-3-s.length-6,4,s,P.uiAccent);g.text(W-3-5,4,"COMBO",P.ui)}
+}
+
+/* ---------- particles (stateless, functions of t) ---------- */
+function petals(g,P,t,n,col,seed,wind=-6,fall=4){
+ for(let i=0;i<n;i++){const sp=.6+h1(i,seed)*.8;let x=h1(i,seed+1)*W*1.4+wind*t*sp,y=h1(i,seed+2)*H+fall*t*sp;
+  x+=Math.sin(t*1.7*sp+i)*3;x=((x%W)+W)%W;y=((y%H)+H)%H;
+  const ph=Math.sin(t*3*sp+i*2);g.set(x,y,ph>.5?"*":ph>-.2?"'":",",mix(col,P.bg,h1(i,seed+4)*.35))}
+}
+function embers(g,P,t,n,seed){
+ for(let i=0;i<n;i++){const sp=.5+h1(i,seed)*1.2;let x=h1(i,seed+1)*W+Math.sin(t*1.3+i)*2.5+t*2*sp,y=H-((h1(i,seed+2)*H+t*6*sp)%H);
+  x=((x%W)+W)%W;const life=y/H;g.set(x,y,life>.7?"·":h1(i,seed+5)>.5?"'":".",mix(P.ember,P.bg,1-life*.9))}
+}
+function rain(g,P,M,t,n,seed,ymin,ymax,speed=1){
+ for(let i=0;i<n;i++){const sp=.7+h1(i,seed)*.6,near=h1(i,seed+3)>.8;
+  const span=ymax-ymin;let y=ymin+((h1(i,seed+2)*span+t*34*sp*speed)%span);let x=h1(i,seed+1)*(W+20)-(y-ymin)*.45-t*0*sp;x=((x%W)+W)%W;
+  const col=near?P.rainHi:P.rain;g.set(x,y,"/",col);if(near)g.set(x-.5,y+1,"/",mix(col,P.bg,.4))}
+ for(let i=0;i<40;i++){const fr=Math.floor(t*10+h1(i,seed+7)*10);const x=Math.floor(h1(i*31+fr,seed+8)*W);const ph=(t*10+h1(i,seed+7)*10)%1;
+  g.set(x,ymax,ph<.5?"o":".",P.rainHi);if(ph<.5){g.set(x-1,ymax-1,"'",P.rain);g.set(x+1,ymax-1,"`",P.rain)}}
+}
+
+/* ---------- scenes ---------- */
+const PC=P=>({h:P.hat,s:P.skin,c:P.cloth,r:P.sash,d:P.dark,k:P.feet,m:P.hilt,e:P.eye});
+const BC=P=>({h:P.foeAccent,s:P.foeSkin,c:P.foe,r:P.foeAccent,d:P.foeDark,k:P.foeDark,m:P.foeAccent,e:P.eye});
+const DC=P=>({c:P.duel,r:P.duelAccent,d:P.duelDark,k:P.duelDark,m:P.duelAccent,e:P.duelAccent,s:P.duelAccent,h:P.duel});
+const OC=P=>({n:P.oniHorn,c:P.oni,d:P.oniDark,k:P.oniDark,m:P.oniHorn,e:P.oniEye,s:P.oni,h:P.oni});
+function grassEdge(g,P,M,t,x0,x1,yfn,col,seed,tall=1){
+ for(let x=x0;x<x1;x++){const y=yfn(x);if(h2(x,0,seed)<.45)continue;const s=Math.sin(t*2.2+x*.35+seed);
+  const c=s>.45?"/":s<-.45?"\\":(h2(x,1,seed)>.5?"|":"'");g.set(x,y-1,c,col);
+  if(tall>1&&h2(x,2,seed)>.6)g.set(x+(s>.3?1:s<-.3?-1:0),y-2,s>.3?"/":s<-.3?"\\":"|",col)}
+}
+
+const SCENES={
+ title(g,P,M,t){
+  sky(g,P,M,P.skyDusk,0,34);stars(g,P,M,t,20,90,3);
+  disc(g,P,M,112,15,15,P.moon,P.moonShade,{glow:10,seed:4});
+  clouds(g,P,M,t,9,13,2.5,40,.6);
+  ridge(g,P,M,{base:31,amp:9,freq:.03,seed:11,col:P.far,col2:P.far2,scroll:t*.6,tex:" .'"});
+  ridge(g,P,M,{base:37,amp:6,freq:.05,seed:21,col:P.mid,scroll:t*1.4,tex:" .:"});
+  const cliff=(x)=>x>92?29+Math.max(0,(x-140))*.6+fbm(x*.3,5,2)*1.2:x>84?29+(92-x)*1.4:41+fbm(x*.2,7,2)*1.5;
+  ridge(g,P,M,{fn:(x)=>Math.min(44,cliff(x)),seed:31,col:P.near,tex:" .,"});
+  for(let x=0;x<W;x++)if(x>85&&x<141)for(let k=0;k<1;k++){}
+  grassEdge(g,P,M,t,93,140,x=>Math.floor(cliff(x)),P.grass,3,2);
+  grassEdge(g,P,M,t,0,84,x=>Math.floor(cliff(x)),P.grass,5,1);
+  const bob=Math.round(Math.sin(t*1.2)*.0);
+  const a=drawSprite(g,PLAYER_GUARD,103,15+bob,PC(P),P,M,{});
+  if(a[0])blade(g,a[0][0],a[0][1],38,15,P,{tip:"'"});
+  // scarf flowing in the wind
+  for(let i=0;i<9;i++){const x=107-i,y=20+Math.sin(t*4-i*.7)*1.2*(i/9)+i*.15;g.set(x,y,i<7?"~":"-",P.sash)}
+  petals(g,P,t,46,P.petal,9,-7,3.5);
+  const ex=bigText(g,P,M,"ASCII",8,4,P.title,P.titleShadow);
+  bigText(g,P,M,"FIGHTER",8,13,P.title,P.titleShadow);
+  g.text(9,22,"A   R O A D   O F   A   T H O U S A N D   C U T S",P.ui);
+  const menu=["NEW JOURNEY","CONTINUE","DOJO","OPTIONS"];
+  menu.forEach((m,i)=>{const sel=i===0;const y=26+i*2;
+   if(sel){const s=Math.floor(t*3)%2===0;g.text(9,y,M.rich?"▸":">",P.uiAccent);g.text(11,y,m,P.uiAccent);g.text(11+m.length+1,y,s?"_":" ",P.uiAccent);
+    if(M.rich)for(let x=8;x<34;x++)g.tint(x,y,P.uiAccent,.14)}
+   else g.text(11,y,m,P.ui);});
+  if(Math.sin(t*3.2)>-.2)g.text(9,H-3,"PRESS  ENTER",P.uiAccent);
+  g.text(W-30,H-2,"v0.1 mockup · 2026",mix(P.uiDim,P.bg,.2));
+ },
+ road(g,P,M,t){
+  const sc=t*4;
+  sky(g,P,M,P.skyDusk,0,30);
+  disc(g,P,M,36,24,11,P.sun,P.sunShade,{glow:12,seed:8});
+  clouds(g,P,M,t,4,13,1.6,7,.56);
+  ridge(g,P,M,{base:29,amp:8,freq:.028,seed:12,col:P.far,col2:P.far2,scroll:sc*.15,tex:" .'"});
+  // torii in the middle distance
+  const tx=Math.round(96-sc*.35%200);
+  const tor=["____________________________","'-._____________________.-'","   ||    | |##| |    ||","  =||====|_|##|_|====||=","   ||       ''       ||","   ||                ||","   ||                ||","   ||                ||","  _||_              _||_"];
+  tor.forEach((r,i)=>{for(let k=0;k<r.length;k++)if(r[k]!==" ")g.set(tx+k-(i===0?2:i===1?-1:0),25+i,r[k],r[k]==="#"?P.uiAccent:P.torii,M.rich?mix(P.torii,P.bg,.45):null)});
+  // pine tree line
+  ridge(g,P,M,{base:35,amp:2,freq:.08,seed:13,col:P.mid,scroll:sc*.4,tex:" .:"});
+  for(let i=0;i<26;i++){const wx=i*9+h1(i,4)*5;let x=Math.round(((wx-sc*.4)%(26*9)+26*9)%(26*9))-8;const ht=6+Math.floor(h1(i,5)*6);pine(g,P,M,x,34,ht,P.mid,i)}
+  // ground
+  for(let y=36;y<H;y++)for(let x=0;x<W;x++){const d=(y-36)/(H-36);const col=mix(P.groundHi,P.ground,clamp(d*1.6,0,1));
+   if(M.rich)g.set(x,y," ",null,col);const wx=Math.floor(x+sc);const n=h2(wx,y,77);
+   if(y===36)g.set(x,y,n>.5?"_":".",P.stone);else if(n>.93)g.set(x,y,n>.975?"o":"°",mix(P.stone,P.bg,d*.6));else if(n>.85)g.set(x,y,n>.89?".":",",mix(P.stone,P.bg,d*.6));
+   else if(!M.rich&&n>.7)g.set(x,y,"-",mix(P.groundHi,P.bg,.4+d*.5))}
+  grassEdge(g,P,M,t,0,W,()=>37,P.grass,8,2);
+  // characters (feet at row 41)
+  const feet=41;
+  const p=drawSprite(g,PLAYER_SLASH,30,feet-14,PC(P),P,M,{});
+  let tip=[70,33];if(p[0])tip=blade(g,p[0][0],p[0][1],-14,15,P,{tip:"'"});
+  {const R=22,a=-14*Math.PI/180;arcTrail(g,tip[0]-Math.cos(a)*R,tip[1]+Math.sin(a)*R/ASPECT,R,125,-14,P,M,4)}
+  const flash=Math.floor(t*8)%3===0;
+  const b=drawSprite(g,BANDIT,74,feet-12,BC(P),P,M,{mirror:true,shear:.32,flash});
+  if(b[0])blade(g,b[0][0],b[0][1],205,8,P,{grad:[P.steelDim,P.steel]});
+  burst(g,74,31,P,M,t,{n:11,len:9,glow:4});
+  // blood droplets on an arc
+  for(let i=0;i<9;i++){const ph=((t*.9+i*.11)%1);const x=76+ph*18+i*.4,y=31-Math.sin(ph*Math.PI)*5+ph*6;g.set(x,y,ph<.5?"•":".",mix(P.blood,P.bg,ph*.6));if(!M.rich)g.set(x,y,ph<.5?"o":".",P.blood)}
+  const dy=Math.round((t*2)%1*-3);g.text(80,20+dy,"-38",P.uiAccent);g.text(84,20+dy,"CRIT",P.blood);
+  // second bandit charging with blade raised
+  const run=Math.sin(t*10);
+  const c=drawSprite(g,BANDIT,108+Math.round(run*.6),feet-12,BC(P),P,M,{mirror:true,shear:-.12});
+  if(c[0])blade(g,c[0][0],c[0][1],120,11,P,{grad:[P.steelDim,P.steel]});
+  for(let i=0;i<5;i++)g.set(125+i*2+Math.round(run),feet-1-(i%2),"~",mix(P.stone,P.bg,.3+i*.12));
+  petals(g,P,t,30,P.leaf,21,-10,2.5);
+  hud(g,P,M,{hp:.72,hpGhost:.8,ki:.46,score:"48210",combo:12});
+  g.text(W-29,6,"STAGE 1-2 · CEDAR ROAD",P.ui);
+ },
+ parry(g,P,M,t){
+  const slow=.25;const T=t*slow;
+  sky(g,P,M,P.skyNight,4,30);stars(g,P,M,t,24,60,8);
+  const C=[75,31];
+  disc(g,P,M,C[0],20,16,P.moon,P.moonShade,{glow:8,seed:2});
+  clouds(g,P,M,T,15,18,6,3,.62);
+  ridge(g,P,M,{base:33,amp:5,freq:.03,seed:41,col:P.far,col2:P.mid,tex:" .'"});
+  // susuki grass field
+  for(let x=0;x<W;x++){const hb=4+Math.floor(fbm(x*.3,6,2)*6);for(let k=0;k<hb;k++){const y=40-k;const s=Math.sin(T*6+x*.2)+(k/hb)*1.2;
+    const c=k===hb-1?(h2(x,k,2)>.75?"*":"'"):s>1.2?"/":s<-.2?"\\":"|";g.set(x+(k>hb*.6&&s>1.2?1:0),y,c,k===hb-1?mix(P.grassHi,P.moon,.3):mix(P.grass,P.near,.3+(1-k/hb)*.5))}}
+  for(let y=40;y<H;y++)for(let x=0;x<W;x++){if(M.rich)g.set(x,y," ",null,P.near)}
+  // focus lines
+  for(let i=0;i<70;i++){const a=i/70*Math.PI*2+h1(i+Math.floor(t*12),4)*.05;const r0=58+h1(i,5)*16+h1(i+Math.floor(t*12),6)*6;
+   const x0=C[0]+Math.cos(a)*r0,y0=C[1]-Math.sin(a)*r0/ASPECT,x1=C[0]+Math.cos(a)*120,y1=C[1]-Math.sin(a)*120/ASPECT;line(g,x0,y0,x1,y1,P.focus)}
+  rain(g,P,M,T,150,5,4,40);
+  const feet=41;
+  const p=drawSprite(g,PLAYER_GUARD,46,feet-14,PC(P),P,M,{});
+  if(p[0])blade(g,p[0][0],p[0][1],Math.atan2(-(C[1]-p[0][1])*ASPECT,C[0]-p[0][0])*180/Math.PI,Math.hypot(C[0]-p[0][0],(C[1]-p[0][1])*ASPECT)+5,P,{tip:"'"});
+  const d=drawSprite(g,DUELIST,84,feet-14,DC(P),P,M,{mirror:true});
+  if(d[0])blade(g,d[0][0],d[0][1],Math.atan2(-(C[1]-d[0][1])*ASPECT,C[0]-d[0][0])*180/Math.PI,Math.hypot(C[0]-d[0][0],(C[1]-d[0][1])*ASPECT)+5,P,{grad:[P.duelAccent,P.steelHi],tip:"'"});
+  burst(g,C[0],C[1],P,M,t,{n:14,len:11,glow:5,ring:true,ringSpeed:.9});
+  // letterbox
+  for(let y=0;y<H;y++)if(y<4||y>=H-3)for(let x=0;x<W;x++)g.set(x,y," ",null,P.letterbox),M.rich||g.set(x,y," ",null);
+  const lbText=P.letterbox===PAL.sumi.letterbox?PAL.sumi.bg:P.ui;
+  bigText(g,P,M,"PARRY",6,6,P.title,P.titleShadow);
+  g.text(4,1,"● SLOW-MO",P.blood);g.text(W-24,1,"FRAME 0412 / 1:4",mix(lbText,P.letterbox,.4));
+  g.text(4,H-2,"PERFECT PARRY",lbText);g.text(19,H-2,"+40 KI",P.uiAccent);g.text(27,H-2,"· guard broken, counter window open",mix(lbText,P.letterbox,.45));
+  g.text(W-33,H-2,"[J] COUNTER  ▮▮▮▮▮▯▯",P.uiAccent);if(!M.rich)g.text(W-33,H-2,"[J] COUNTER  #####--",P.uiAccent);
+ },
+ boss(g,P,M,t,st){
+  sky(g,P,M,P.skyFire,0,40);
+  // smoke bands
+  for(let y=2;y<22;y++)for(let x=0;x<W;x++){const v=fbm((x+t*3)*.04+y*.11,61+y,4);if(v>.58){if(M.rich)g.tint(x,y,P.smoke,.6*(v-.58)/.42+.2);else if(v>.64)g.set(x,y,v>.7?"%":"~",P.smoke)}}
+  // fire sim
+  const FH=22,F0=H-4-FH;if(!st.fire){st.fire=new Float32Array(W*FH);st.last=t}
+  const steps=Math.min(4,Math.max(1,Math.round((t-st.last)*30)));st.last=t;const fire=st.fire;
+  for(let s=0;s<steps;s++){
+   for(let x=0;x<W;x++){const hot=.55+.45*fbm(x*.09+t*.6,3,3);fire[(FH-1)*W+x]=Math.random()<.85?hot:hot*.5}
+   for(let y=0;y<FH-1;y++)for(let x=0;x<W;x++){const src=(y+1)*W+x;const r=Math.random();const dx=Math.round(r*2.2-1.4);const dst=y*W+clamp(x+dx,0,W-1);fire[dst]=Math.max(0,fire[src]-r*.11)}
+  }
+  const ramp=M.rich?" .:*^":" .,:;^*%#&";
+  for(let y=0;y<FH;y++)for(let x=0;x<W;x++){const v=fire[y*W+x];if(v<.1)continue;const Y=F0+y;
+   const col=grad(P.fire,v);
+   if(M.rich){g.tint(x,Y,col,clamp(v*1.3,0,1));if(v>.25)g.set(x,Y,ramp[Math.min(ramp.length-1,Math.floor(v*ramp.length))],grad(P.fire,Math.min(1,v+.25)))}
+   else g.set(x,Y,ramp[Math.min(ramp.length-1,Math.floor(v*ramp.length))],col)}
+  // pagoda silhouette
+  drawSprite(g,PAGODA,50,22,{t:mix(P.temple,P.fire[3],.5),w:P.window,c:P.temple},P,M,{fillTo:P.temple});
+  // courtyard
+  for(let yy=40;yy<H;yy++)for(let x=0;x<W;x++){const d=(yy-40)/(H-40);const glow=mix(P.fire[2],P.ground,clamp(.35+d,0,1));
+   if(M.rich)g.set(x,yy," ",null,glow);const c=(yy-40)%2===0?"_":((x+(yy>>1)*4)%8===0?"|":" ");if(c!==" ")g.set(x,yy,c,mix(P.groundHi,P.fire[3],.35*(1-d)))}
+  // oni
+  const feet=41;const sway=Math.round(Math.sin(t*1.5)*.6);
+  const o=drawSprite(g,ONI,98,feet-22+sway,OC(P),P,M,{mirror:false});
+  const fist=o[0]||[102,36];
+  // kanabo club raised up and back
+  const ca=128+Math.sin(t*1.5)*3,cl=30,cr=ca*Math.PI/180;
+  for(let w=-1;w<=1;w++)line(g,fist[0]+w,fist[1],fist[0]+Math.cos(cr)*cl+w,fist[1]-Math.sin(cr)*cl/ASPECT,P.club,{char:w===0?"#":w<0?"(":")",bg:M.rich?mix(P.club,P.bg,.35):null});
+  for(let i=0;i<9;i++){const s=10+i*2.3;g.set(fist[0]+Math.cos(cr)*s+(i%2?1:-1),fist[1]-Math.sin(cr)*s/ASPECT,"o",P.stud)}
+  // player airborne dash with afterimages
+  const ax=40,ay=10;
+  for(let k=2;k>=1;k--)drawSprite(g,PLAYER_SLASH,ax-k*12,ay+k*2,PC(P),P,M,{ghost:true,tint:mix(P.steel,P.bg,.45+k*.17)});
+  for(let i=0;i<7;i++){const yy=ay+4+i*2;const L=6+h1(i+Math.floor(t*14),3)*12;line(g,ax-L,yy,ax+3,yy,mix(P.steelDim,P.bg,.1),{char:"-"})}
+  const pa=drawSprite(g,PLAYER_SLASH,ax,ay,PC(P),P,M,{});
+  if(pa[0])blade(g,pa[0][0],pa[0][1],-8,17,P,{tip:"'"});
+  arcTrail(g,ax+20,ay+8,20,150,-6,P,M,3);
+  embers(g,P,t,90,13);
+  hud(g,P,M,{hp:.38,hpGhost:.52,ki:.9,score:"112480",combo:4,sub:"KI FULL · [L+J] iaido"});
+  // boss bar
+  if(M.rich)for(let x=0;x<W;x++)for(let yy=H-3;yy<H;yy++)g.tint(x,yy,P.panel,.75);
+  g.text(16,H-3,"ONI OF THE ASHEN GATE",P.ui);g.text(38,H-3,"· phase 2",P.uiDim);
+  hbar(g,P,M,16,H-2,W-32,.57,P.boss,{ghost:.63});
+ }
+};
+
+/* ---------- rendering ---------- */
+const FS=20;let CW=12,CH=24;
+function measure(){const c=document.createElement("canvas").getContext("2d");c.font=`${FS}px ${getComputedStyle(document.documentElement).getPropertyValue("--f-mono")}`;CW=Math.ceil(c.measureText("M").width*100)/100;CH=Math.round(FS*1.22)}
+const BLOCKS={"█":[0,0,1,1],"▀":[0,0,1,.5],"▄":[0,.5,1,.5],"▁":[0,7/8,1,1/8],"▂":[0,6/8,1,2/8],"▃":[0,5/8,1,3/8],"▅":[0,3/8,1,5/8],"▆":[0,2/8,1,6/8],"▇":[0,1/8,1,7/8],
+ "▏":[0,0,1/8,1],"▎":[0,0,2/8,1],"▍":[0,0,3/8,1],"▌":[0,0,.5,1],"▋":[0,0,5/8,1],"▊":[0,0,6/8,1],"▉":[0,0,7/8,1]};
+function render(ctx,g,P){
+ ctx.fillStyle=P.bg;ctx.fillRect(0,0,W*CW,H*CH);
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const b=g.bg[y*W+x];if(b){ctx.fillStyle=b;ctx.fillRect(Math.floor(x*CW),y*CH,Math.ceil(CW)+1,CH+1)}}
+ ctx.textBaseline="middle";ctx.textAlign="center";ctx.font=`${FS}px ${getComputedStyle(document.documentElement).getPropertyValue("--f-mono")}`;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x,c=g.ch[i];if(c===" "||!g.fg[i])continue;ctx.fillStyle=g.fg[i];
+  const b=BLOCKS[c];if(b){ctx.fillRect(x*CW+b[0]*CW,y*CH+b[1]*CH,b[2]*CW+.6,b[3]*CH+.6);continue}
+  ctx.fillText(c,x*CW+CW/2,y*CH+CH/2+1)}
+}
+
+const state={pal:"dusk",mode:"rich",motion:!matchMedia("(prefers-reduced-motion: reduce)").matches};
+const views=[...document.querySelectorAll("canvas[data-scene]")].map(cv=>({cv,ctx:cv.getContext("2d"),g:new Grid(),scene:cv.dataset.scene,st:{},vis:true,fpsEl:cv.parentElement.querySelector(".fps"),frames:0,lastF:performance.now()}));
+function sizeAll(){for(const v of views){v.cv.width=Math.round(W*CW);v.cv.height=H*CH}}
+function drawView(v,t){const P=PAL[state.pal],M={rich:state.mode==="rich"};v.g.clear();SCENES[v.scene](v.g,P,M,t,v.st);render(v.ctx,v.g,P);
+ v.cv.parentElement.classList.toggle("phosphor",state.pal==="phosphor")}
+const io=new IntersectionObserver(es=>es.forEach(e=>{const v=views.find(v=>v.cv===e.target);if(v)v.vis=e.isIntersecting}));
+views.forEach(v=>io.observe(v.cv));
+let T=0,prev=performance.now(),acc=0;
+function loop(now){const dt=Math.min(.1,(now-prev)/1000);prev=now;
+ if(state.motion){T+=dt;acc+=dt;if(acc>=1/30){acc=0;for(const v of views)if(v.vis){drawView(v,T);v.frames++}}}
+ for(const v of views){if(now-v.lastF>1000){v.fpsEl.textContent=state.motion?`${v.frames} fps`:"frozen";v.frames=0;v.lastF=now}}
+ requestAnimationFrame(loop)}
+function redrawAll(){for(const v of views)drawView(v,T||1.3)}
+function bindSeg(id,key,map=x=>x){const el=document.getElementById(id);el.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+ el.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));state[key]=map(b.dataset.v);try{localStorage.setItem("af-"+key,b.dataset.v)}catch(_){}redrawAll()})}
+bindSeg("pal","pal");bindSeg("mode","mode");bindSeg("motion","motion",v=>v==="on");
+if(!state.motion)document.querySelectorAll("#motion button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v==="off")));
+try{for(const[k,id]of[["pal","pal"],["mode","mode"]]){const v=localStorage.getItem("af-"+k);if(v&&document.querySelector(`#${id} [data-v="${v}"]`)){state[k]=v;document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===v)))}}}catch(_){}
+const start=()=>{measure();sizeAll();T=1.3;redrawAll();requestAnimationFrame(loop)};
+(document.fonts&&document.fonts.load?Promise.race([document.fonts.load(`${FS}px "JetBrains Mono"`),new Promise(r=>setTimeout(r,1500))]):Promise.resolve()).then(start,start);
+})();
+</script>
