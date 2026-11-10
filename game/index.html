@@ -75,7 +75,7 @@ body{font-family:var(--f-mono);color:var(--hud-text);touch-action:none;-webkit-u
 /* ================= constants ================= */
 const CW=4,CH=6;                       // world px per glyph cell
 const FONT_PX=7;                       // glyph size (overlaps cells a little, so blades read as long strokes)
-const glyphOf=c=>c===1?"·":c===2?"•":String.fromCharCode(c);
+const glyphOf=c=>c===1?"·":c===2?"•":c===3?"█":String.fromCharCode(c);
 const code=s=>s==="·"?1:s==="•"?2:s.charCodeAt(0);
 const C_SL=47,C_BS=92,C_PI=124,C_DA=45,C_US=95,C_DT=46,C_CM=44,C_AP=39,C_TI=126,C_CO=58;
 const BLADE_GLYPHS=[C_SL,C_PI,C_BS,code("l"),code("!"),code("i"),C_AP,C_CM];
@@ -103,10 +103,10 @@ let gl=null;try{gl=cv.getContext("webgl2",{antialias:false,alpha:false,premultip
 const ctx=gl?null:cv.getContext("2d",{alpha:false});
 const R=gl?makeGL():make2D();
 function glyphCanvas(){
- const codes=[1,2];for(let c=32;c<127;c++)codes.push(c);const pad=2,cw=TW+pad,ch=TH+pad,per=Math.floor(1024/cw);
+ const codes=[1,2,3];for(let c=32;c<127;c++)codes.push(c);const pad=2,cw=TW+pad,ch=TH+pad,per=Math.floor(1024/cw);
  const a=document.createElement("canvas");a.width=1024;a.height=Math.ceil(codes.length/per)*ch+70;const x=a.getContext("2d");
  x.font=FONT();x.textAlign="center";x.textBaseline="middle";x.fillStyle="#fff";const pos={};
- codes.forEach((c,i)=>{const sx=(i%per)*cw+1,sy=Math.floor(i/per)*ch+1;x.fillText(glyphOf(c),sx+TW/2,sy+TH/2);pos[c]=[sx,sy]});
+ codes.forEach((c,i)=>{const sx=(i%per)*cw+1,sy=Math.floor(i/per)*ch+1;if(c===3)x.fillRect(sx+OX,sy+OY,Math.ceil(CW*DPR)+.5,Math.ceil(CH*DPR)+.5);else x.fillText(glyphOf(c),sx+TW/2,sy+TH/2);pos[c]=[sx,sy]});
  const gy=a.height-66;const gr=x.createRadialGradient(33,gy+32,0,33,gy+32,32);gr.addColorStop(0,"rgba(255,255,255,.85)");gr.addColorStop(.25,"rgba(255,255,255,.35)");gr.addColorStop(1,"rgba(255,255,255,0)");
  x.fillStyle=gr;x.fillRect(1,gy,64,64);return{a,pos,glow:[1,gy,64,64]};
 }
@@ -882,7 +882,8 @@ function paintTrail(c,a){const tr=a.trail;if(tr.length<2)return;const heavy=a.an
 function drawCoin(c,k){const b=.5+.5*Math.sin(now*6+k.x),o=mkO(c,{});shadow(o,k.x,k.y,6,2.5);c.beginPath();c.ellipse(k.x,k.y-k.z-5,4.5*(.55+.45*b),4.5,0,0,TAU);c.fillStyle="#ffc94a";c.fill();c.beginPath();c.arc(k.x-1,k.y-k.z-6.5,1.5,0,TAU);c.fillStyle="#fff6c8";c.fill()}
 
 /* ================= render ================= */
-let LB=new Float32Array(1),TB=new Float32Array(1),PB=new Float32Array(1),DB=new Float32Array(1),EA=new Uint8Array(1);
+let LB=new Float32Array(1),TB=new Float32Array(1),PB=new Float32Array(1),DB=new Float32Array(1),EA=new Uint8Array(1),PM=new Uint8Array(1);
+const pmask=document.createElement("canvas"),pmx=pmask.getContext("2d",{willReadFrequently:true});
 function addLight(buf,c0,r0,cols,rows,wx,wy,Rr,amt){
  const x0=Math.max(0,Math.floor((wx-Rr)/CW)-c0),x1=Math.min(cols-1,Math.ceil((wx+Rr)/CW)-c0),y0=Math.max(0,Math.floor((wy-Rr)/CH)-r0),y1=Math.min(rows-1,Math.ceil((wy+Rr)/CH)-r0);
  const inv=1/Rr;for(let y=y0;y<=y1;y++){const dy=(y+r0)*CH+3-wy;for(let x=x0;x<=x1;x++){const dx=(x+c0)*CW+2-wx,d=Math.sqrt(dx*dx+dy*dy)*inv;if(d<1){const f=1-d;buf[y*cols+x]+=amt*f*f}}}
@@ -912,6 +913,10 @@ function render(){
   else if(p.kind==="dust"){E.globalAlpha=a*.35;E.beginPath();E.arc(p.x,p.y-p.z,p.sz,0,TAU);E.fillStyle=p.col;E.fill()}
   else{E.globalAlpha=a;E.fillStyle=p.col;E.fillRect(p.x-p.sz/2,p.y-p.z-p.sz,p.sz*1.3,p.sz*1.6)}}E.globalAlpha=1;
  const img=E.getImageData(0,0,cols,rows).data;
+ if(pmask.width!==cols||pmask.height!==rows){pmask.width=cols;pmask.height=rows}if(PM.length<n)PM=new Uint8Array(n);PM.fill(0,0,n);
+ if(!PL.dead&&PL.body.hand){pmx.setTransform(1,0,0,1,0,0);pmx.clearRect(0,0,cols,rows);pmx.setTransform(1/CW,0,0,1/CH,-c0,-r0);paintKnight(pmx,PL.body,{tint:"#ffffff"});
+  const md=pmx.getImageData(0,0,cols,rows).data;for(let k=0;k<n;k++)if(md[k*4+3]>70)PM[k]=2;
+  for(let r=1;r<rows-1;r++)for(let c=1;c<cols-1;c++){const k=r*cols+c;if(PM[k])continue;if(PM[k-1]===2||PM[k+1]===2||PM[k-cols]===2||PM[k+cols]===2||PM[k-cols-1]===2||PM[k-cols+1]===2||PM[k+cols-1]===2||PM[k+cols+1]===2)PM[k]=1}}
  // ---- lights, shadows, grass push
  if(!PL.dead)addLight(LB,c0,r0,cols,rows,PL.x,PL.y-40,300,.38);
  for(const f of flies){const b=.5+.5*Math.sin(now*2.2+f.b);addLight(TB,c0,r0,cols,rows,f.x,f.y,40,.9*b);addLight(LB,c0,r0,cols,rows,f.x,f.y,40,.3*b)}
@@ -923,7 +928,7 @@ function render(){
  // ---- ground layer
  for(let r=0;r<rows;r++){const wy=r0+r;if(wy<0||wy>=HC)continue;const dy=Math.round((wy*CH-camY)*DPR)-OY;const py=wy*CH+3;
   const wrow=.42*0,rk=r*cols;
-  for(let c=0;c<cols;c++){const wx=c0+c;if(wx<0||wx>=WC)continue;const k=rk+c;if(EA[k]>120)continue;const i=wy*WC+wx,ty=T[i];
+  for(let c=0;c<cols;c++){const wx=c0+c;if(wx<0||wx>=WC)continue;const k=rk+c;if(EA[k]>120||PM[k])continue;const i=wy*WC+wx,ty=T[i];
    const dx=Math.round((wx*CW-camX)*DPR)-OX;const px=wx*CW+2;const light=(1.08+LB[k])*SH[i]*DB[k];const v=VAR[i];const tb=TB[k];
    let cr=CR[i]/255,cg=CGc[i]/255,cb=CB[i]/255;
    if(ty===T_GRASS||ty===T_FLOWER){
@@ -950,13 +955,15 @@ function render(){
  // ---- moving things as glyphs: brightness picks density, alpha/luminance edges pick oriented strokes
  const lum=k=>(img[k*4]*.3+img[k*4+1]*.55+img[k*4+2]*.15)/255;
  for(let r=1;r<rows-1;r++){const wy=r0+r,dy=Math.round((wy*CH-camY)*DPR)-OY;
-  for(let c=1;c<cols-1;c++){const k=r*cols+c,a=EA[k];if(a<22)continue;const o=k*4;const rr=img[o],gg=img[o+1],bb=img[o+2];const m=Math.max(rr,gg,bb);if(m<26)continue;
+  for(let c=1;c<cols-1;c++){const k=r*cols+c,a=EA[k],pm=PM[k],o=k*4;
+   if(pm){const bx=Math.round(((c0+c)*CW-camX)*DPR)-OX;if(pm===1)R.put(bx,dy,3,.02,.025,.035,.82);else{const q=.22;R.put(bx,dy,3,img[o]/255*q+.03,img[o+1]/255*q+.03,img[o+2]/255*q+.04,1)}}
+   if(a<22)continue;const rr=img[o],gg=img[o+1],bb=img[o+2];const m=Math.max(rr,gg,bb);if(m<26&&pm!==2)continue;
    const wx=c0+c,L=lum(k),cov=a/255;let g=0,gx=0,gy=0;
    if(a<205){gx=img[o+7]-img[o-1];gy=img[o+cols*4+3]-img[o-cols*4+3];if(Math.abs(gx)+Math.abs(gy)<110){gx=gy=0}}
    else if(EA[k+1]>150&&EA[k-1]>150&&EA[k+cols]>150&&EA[k-cols]>150){gx=(lum(k+1)-lum(k-1))*255;gy=(lum(k+cols)-lum(k-cols))*255;if(Math.abs(gx)+Math.abs(gy)<120){gx=gy=0}}
    if(gx||gy){const ang=((Math.atan2(-gx/CW,-gy/CH)*180/Math.PI)%180+180)%180;g=ang<22||ang>158?(gy>0?C_US:C_DA):ang<68?C_SL:ang<112?C_PI:C_BS}
    if(!g)g=entGlyph(clamp(L*.9+cov*.18,0,.999),h2(wx,wy,5));
-   const s=1.32;R.put(Math.round((wx*CW-camX)*DPR)-OX,dy,g,rr/255*s,gg/255*s,bb/255*s,Math.min(1,cov*1.3))}}
+   const s=pm===2?Math.max(1.32,.42/Math.max(m/255,.02)):1.32;R.put(Math.round((wx*CW-camX)*DPR)-OX,dy,g,rr/255*s,gg/255*s,bb/255*s,pm===2?1:Math.min(1,cov*1.3))}}
  // ---- fireflies
  for(const f of flies){const b=.5+.5*Math.sin(now*2.2+f.b);stampRGB(f.x,f.y,b>.5?2:1,b>.7?[1,1,1]:[.55,.88,1],.55+.45*b)}
  // ---- canopy
