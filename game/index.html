@@ -274,55 +274,101 @@ function ik(A,T,l1,l2,pole){let d=vsub(T,A),L=vlen(d);const mx=(l1+l2)*.999;if(L
 const LENS=["thigh","shin","ankle","spine","neck","headR","shW","hipW","waistW","chestD","upper","fore","blade","radius","height","stF","stW"];
 function spec(o){const s={...o};for(const k of LENS)s[k]*=o.scale;s.hipZ=s.thigh+s.shin+s.ankle;return s}
 const SPECS={
- knight:spec({scale:1.12,thigh:37,shin:36,ankle:5,spine:33,neck:7,headR:10,shW:17,hipW:8,waistW:12.5,chestD:9.5,upper:26,fore:24,blade:66,radius:15,height:150,stF:9,stW:9,mass:1}),
+ knight:spec({scale:1.12,thigh:37,shin:36,ankle:5,spine:33,neck:7,headR:10,shW:17,hipW:8,waistW:12.5,chestD:9.5,upper:26,fore:24,blade:66,radius:15,height:150,stF:13,stW:7,mass:1}),
  skel:  spec({scale:1.08,thigh:37,shin:36,ankle:4,spine:32,neck:8,headR:9.5,shW:15,hipW:7,waistW:8,chestD:8,upper:25,fore:23,blade:54,radius:14,height:148,stF:7,stW:8,mass:.8}),
  brute: spec({scale:1.5,thigh:36,shin:35,ankle:4,spine:33,neck:7,headR:10,shW:17,hipW:8,waistW:9,chestD:9,upper:26,fore:24,blade:66,radius:15,height:150,stF:9,stW:10,mass:2.4}),
 };
 
 /* ================= poses & sword choreography (knight units: forward, right, up) ================= */
-const KG={h:[17,7,86],d:[.5,-.3,.81],tw:.12,lf:.04,two:1};
-const KBLOCK={h:[19,-3,114],d:[.25,-.95,.2],tw:.05,lf:-.05,two:1,k:26};          // high cross guard
-const KHANG={h:[14,9,122],d:[.42,-.62,-.66],tw:-.12,lf:-.02,two:1,k:26};         // hanging guard, point down across the body
-const KRUN={h:[13,11,80],d:[.78,-.05,.62],tw:.05,lf:0,two:0};
-const KDF={h:[-6,14,80],d:[-.75,.35,-.35],tw:.55,lf:.5,two:0,cr:14,k:28};          // forward lunge, blade drawn back low
-const KDB={h:[16,0,112],d:[.3,-.9,.3],tw:0,lf:-.35,two:1,cr:4,k:28};              // back-hop, guard up
-const KDS={h:[15,8,90],d:[.6,-.4,.7],tw:.1,lf:.1,two:1,cr:10,k:28};               // side-step
+const ease=u=>u*u*(3-2*u);
+const EZ={io:ease,in:u=>u*u,out:u=>1-(1-u)*(1-u),lin:u=>u};
+function slerp(a,b,u){const d=clamp(vdot(a,b),-1,1),th=Math.acos(d);if(th<1e-3)return vnorm(vlerp(a,b,u));const s=Math.sin(th);return vadd(vmul(a,Math.sin((1-u)*th)/s),vmul(b,Math.sin(u*th)/s))}
+const mirP=p=>({...p,h:[p.h[0],-p.h[1],p.h[2]],d:[p.d[0],-p.d[1],p.d[2]],tw:-(p.tw||0),off:p.off?[p.off[0],-p.off[1],p.off[2]]:p.off});
+/* Guards after the Liechtenauer tradition (right-side versions; mirrored for the left).
+   Units: forward, right, up, in knight space. Both hands on the grip. */
+const TAG={h:[9,13,116],d:[-.3,.12,.95],tw:.35,lf:.02,two:1};          // Vom Tag: hilt at the shoulder, point up
+const OCHS={h:[11,12,128],d:[.88,-.22,-.4],tw:.3,lf:.02,two:1,k:26};   // Ochs: hands by the head, point at the face
+const HENG={h:[16,6,122],d:[.42,-.62,-.66],tw:.1,lf:-.02,two:1,k:26};  // hanging guard, point down across the body
+const PFLUG={h:[16,10,86],d:[.82,-.2,.52],tw:.25,lf:.04,two:1};        // Pflug: hilt at the hip, point at the face
+const ALBER={h:[22,0,82],d:[.62,0,-.78],tw:0,lf:.04,two:1};            // Alber: point low, inviting the attack
+const KDF={h:[14,8,90],d:[.8,-.15,.55],tw:.25,lf:.42,two:1,cr:14,k:28};  // forward lunge-dash, point leading
+const KDB={h:[12,10,126],d:[.88,-.22,-.4],tw:.25,lf:-.3,two:1,cr:4,k:28}; // back-hop into Ochs
+const KDS={h:[15,8,92],d:[.75,-.2,.62],tw:.2,lf:.08,two:1,cr:10,k:28};   // side-step in Pflug
 const KHIT={h:[6,15,74],d:[.2,.45,-.86],tw:-.35,lf:-.25,two:0,k:30};
 const SG_={h:[14,10,80],d:[.78,.08,.6],tw:.05,lf:.08,two:0,off:[10,-13,90]};
 const SBLOCK={h:[12,11,80],d:[.7,.2,.65],tw:-.15,lf:0,two:0,off:[17,-4,104],k:40};
 const BG_={h:[15,6,84],d:[.55,-.25,.8],tw:.1,lf:.1,two:1};
-const ease=u=>u*u*(3-2*u);
-// A swing is the sword travelling round a tilted plane through the body: coil, hold, accelerate, follow through, recover.
-function arcDef(o){const u0=vnorm(V(...o.u0)),m=vnorm(V(...o.mid)),N=vnorm(vcross(u0,m)),W=vcross(N,u0),tm=o.tm||[.28,.34,.54,.74];
- return{tw0:0,tw1:0,lf0:0,lf1:.2,cr:5,two:1,R:30,dmg:1,push:180,...o,U0:u0,W,thC:Math.acos(clamp(vdot(u0,m),-1,1)),tm,
-  act:[tm[1]+(tm[2]-tm[1])*.35,tm[3]-.04],lungeT:tm[1],wind:tm[1]}}
-function arcPose(d,t,g){const T=d.tm,TH=d.Th,thS=Math.min(TH-.2,d.thC+.5);let th,w;
- if(t<T[0]){const u=ease(t/T[0]);th=-.22*u;w=u}
- else if(t<T[1]){th=-.22-.06*(t-T[0])/(T[1]-T[0]);w=1}
- else if(t<T[2]){const u=(t-T[1])/(T[2]-T[1]);th=-.28+(thS+.28)*u*u;w=1}
- else if(t<T[3]){const u=(t-T[2])/(T[3]-T[2]);th=thS+(TH-thS)*(1-(1-u)*(1-u));w=1}
- else{th=TH;w=1-ease((t-T[3])/(1-T[3]))}
- const r=vadd(vmul(d.U0,Math.cos(th)),vmul(d.W,Math.sin(th))),R=d.R,p=d.piv,k=clamp(th/TH,0,1);
- const strike=t>T[1]&&t<T[3]?Math.sin(Math.PI*clamp((t-T[1])/(T[3]-T[1]),0,1)):0;
- const A={h:[p[0]+r.x*R,p[1]+r.y*R,p[2]+r.z*R],d:[r.x,r.y,r.z],tw:lerp(d.tw0,d.tw1,k),lf:lerp(d.lf0,d.lf1,k),two:d.two,cr:d.cr*(.35+.65*strike),ft:0,off:d.off||g.off};
- const o=blendPose(g,A,w);o.k=w>.99?90:40;return o}
+const KG=TAG;
+/* Techniques: short chamber from the current guard, the blade lands as the passing step lands, arms extended at
+   impact, the cut carries through into the next guard. Keys: t, hands h, blade d, shoulder twist tw, lean lf, crouch cr, easing e. */
+function tech(o){const keys=o.keys.map(k=>k.g?k:{...k,dv:vnorm(V(...k.d))});const imp=keys.find(k=>k.imp)||keys[2],fol=keys[keys.indexOf(imp)+1]||imp;
+ const st=o.stepT??keys[1].t;
+ return{dmg:1,push:150,two:1,pass:true,dirOff:0,end:{high:true,side:1},...o,keys,stepT:st,lungeT:st,wind:o.wind??st,act:o.act||[imp.t-.12,fol.t-.02],tm:[st,st,imp.t,fol.t]}}
 const SW={
- A:arcDef({u0:[-.45,.5,.74],mid:[.92,-.15,-.35],Th:3.7,piv:[2,3,106],R:30,tw0:.85,tw1:-.95,lf0:-.1,lf1:.32,cr:6,dur:.7,push:190}),               // high diagonal hack
- D:arcDef({u0:[-.25,.92,.12],mid:[1,0,-.05],Th:3.5,piv:[0,0,102],R:31,tw0:1,tw1:-1.1,lf0:0,lf1:.22,cr:7,dur:.7,push:200}),                          // flat sweep
- B:arcDef({u0:[-.3,-.8,-.3],mid:[.95,.1,.15],Th:3.4,piv:[2,-2,100],R:30,tw0:-.9,tw1:.9,lf0:-.05,lf1:.25,cr:5,dur:.66,push:170}),                    // rising backhand
- C:arcDef({u0:[-.75,.05,.66],mid:[.8,0,-.25],Th:3.25,piv:[0,4,112],R:32,tw0:.25,tw1:-.15,lf0:-.3,lf1:.55,cr:12,dur:.9,dmg:1.8,push:250,heavy:true,tm:[.36,.44,.6,.78]}), // overhead chop
- P:arcDef({u0:[.3,-.85,.45],mid:[.9,.4,.2],Th:1.9,piv:[0,0,104],R:30,tw0:-.4,tw1:.5,lf0:-.1,lf1:.1,cr:4,dur:.4,dmg:0,push:0,tm:[.1,.12,.45,.62]}),  // parry deflection
- S:arcDef({u0:[-.45,.5,.74],mid:[.92,-.15,-.35],Th:3.5,piv:[2,3,104],R:28,tw0:.8,tw1:-.85,lf0:-.15,lf1:.3,cr:5,dur:1.05,push:230,two:0,off:[10,-13,90],tm:[.48,.56,.7,.85]}),
- X:arcDef({u0:[-.75,.05,.66],mid:[.8,0,-.25],Th:3.2,piv:[0,4,112],R:32,tw0:.2,tw1:-.1,lf0:-.3,lf1:.55,cr:12,dur:1.4,dmg:2.4,push:330,heavy:true,tm:[.5,.58,.72,.86]}),
+ zorn:tech({dur:.52,push:155,end:{high:false,side:-1},keys:[{t:0,g:1},
+  {t:.16,h:[7,13,120],d:[-.42,.15,.9],tw:.5,lf:-.02,cr:2},                       // settle into Vom Tag, rear shoulder back
+  {t:.4,h:[33,2,108],d:[.8,-.42,-.1],tw:-.12,lf:.14,cr:7,e:"in",imp:1},          // arms extended, edge lands with the step
+  {t:.58,h:[22,-9,84],d:[.35,-.55,-.76],tw:-.36,lf:.1,cr:6,e:"out"},             // carries through to the low left
+  {t:1,h:[20,-7,86],d:[.45,-.5,-.74],tw:-.3,lf:.06,cr:4}]}),
+ unter:tech({dur:.5,push:135,end:{high:true,side:1},keys:[{t:0,g:1},
+  {t:.13,h:[16,-10,82],d:[.2,-.6,-.77],tw:-.35,cr:4},                            // gather low on the left
+  {t:.38,h:[31,0,100],d:[.8,.35,.48],tw:.1,lf:.12,cr:6,e:"in",imp:1},            // rising cut
+  {t:.56,h:[13,12,121],d:[-.1,.33,.94],tw:.42,lf:.02,cr:3,e:"out"},              // ends back in Vom Tag
+  {t:1,h:[9,13,116],d:[-.3,.12,.95],tw:.35,cr:1}]}),
+ scheitel:tech({dur:.62,push:175,dmg:1.75,heavy:true,end:{high:false,side:0},keys:[{t:0,g:1},
+  {t:.2,h:[6,4,133],d:[-.35,.05,.94],tw:.2,lf:-.05,cr:2},                        // both hands rise above the head
+  {t:.44,h:[35,1,118],d:[.88,0,-.45],tw:-.05,lf:.16,cr:8,e:"in",imp:1},          // longest reach, straight down the centre
+  {t:.62,h:[24,0,84],d:[.6,0,-.8],tw:-.05,lf:.12,cr:7,e:"out"},                  // ends in Alber
+  {t:1,h:[22,0,82],d:[.62,0,-.78],tw:0,cr:4}]}),
+ zwerch:tech({dur:.5,push:150,dirOff:.45,end:{high:true,side:-1},keys:[{t:0,g:1},
+  {t:.14,h:[8,12,122],d:[-.35,.25,.9],tw:.45,cr:2},
+  {t:.38,h:[23,5,132],d:[.55,-.83,.06],tw:-.1,lf:.06,cr:5,e:"in",imp:1},         // hilt high before the forehead, blade flat
+  {t:.56,h:[15,-10,130],d:[-.15,-.97,.12],tw:-.45,cr:4,e:"out"},                 // carries across, hands stay high
+  {t:1,h:[11,-12,128],d:[.88,.22,-.4],tw:-.3,cr:2}]}),                           // into Ochs on the left
+ stich:tech({dur:.55,push:190,dmg:1.6,pass:false,end:{high:true,side:0},keys:[{t:0,g:1},
+  {t:.15,h:[14,6,92],d:[.85,-.15,.5],tw:.25,cr:3},                               // drop into Pflug
+  {t:.38,h:[43,0,106],d:[.99,0,.05],tw:-.15,lf:.18,cr:8,e:"in",imp:1},           // thrust to Langort
+  {t:.64,h:[37,0,104],d:[.98,0,.05],tw:-.1,lf:.1,cr:6,e:"out"},
+  {t:1,h:[16,10,86],d:[.82,-.2,.52],tw:.2,cr:2}]}),
+ P:tech({dur:.34,push:40,dmg:0,pass:false,end:{high:true,side:0},keys:[{t:0,g:1},  // parry: displace the blade and take the centre
+  {t:.12,h:[18,8,118],d:[.6,-.6,.5],tw:.2,cr:3},
+  {t:.45,h:[28,2,110],d:[.85,-.45,.25],tw:-.1,lf:.06,cr:4,e:"in",imp:1},
+  {t:.7,h:[32,0,106],d:[.95,-.15,.2],tw:-.05,cr:3,e:"out"},
+  {t:1,h:[30,0,106],d:[.96,-.1,.15],tw:-.05,cr:3}]}),
+ // skeleton: one-handed overhand cut behind the shield, slow readable chamber
+ S:tech({dur:1.05,push:230,two:0,pass:false,wind:.5,keys:[{t:0,g:1},
+  {t:.48,h:[-2,16,124],d:[-.6,.35,.72],tw:.55,lf:-.08,cr:2,off:[14,-10,96]},
+  {t:.68,h:[30,4,104],d:[.82,-.35,-.25],tw:-.15,lf:.18,cr:6,e:"in",imp:1,off:[12,-12,92]},
+  {t:.84,h:[16,-12,80],d:[.25,-.6,-.76],tw:-.4,cr:5,e:"out",off:[10,-13,90]},
+  {t:1,g:1}]}),
+ // brute: heavy overhead axe
+ X:tech({dur:1.35,push:330,dmg:2.4,heavy:true,pass:false,wind:.56,keys:[{t:0,g:1},
+  {t:.55,h:[-8,4,146],d:[-.7,.05,.7],tw:.1,lf:-.22,cr:3},
+  {t:.73,h:[30,1,96],d:[.85,0,-.5],lf:.45,cr:12,e:"in",imp:1},
+  {t:.87,h:[26,0,60],d:[.55,0,-.84],lf:.38,cr:12,e:"out"},
+  {t:1,g:1}]}),
 };
-function blendPose(a,b,t){const L=(x,y)=>x+(y-x)*t;return{h:a.h.map((v,i)=>L(v,b.h[i])),d:a.d.map((v,i)=>L(v,b.d[i])),tw:L(a.tw,b.tw),lf:L(a.lf,b.lf),two:L(a.two??0,b.two??0),
- cr:L(a.cr||0,b.cr||0),ft:L(a.ft??.6,b.ft??.6),off:b.off?(a.off?a.off.map((v,i)=>L(v,b.off[i])):b.off.slice()):(a.off&&t<1?a.off.slice():null)}}
+function sampleTech(def,t,mir,g,p0){const K=def.keys;let i=0;while(i<K.length-2&&t>K[i+1].t)i++;
+ const P_=j=>{const k=K[clamp(j,0,K.length-1)];if(k.g){const s=(j<=0&&p0)?p0:g;return{h:s.h,dv:vnorm(V(...s.d)),tw:s.tw||0,lf:s.lf||0,cr:s.cr||0,two:s.two??def.two,off:s.off||null}}
+  return{h:mir?[k.h[0],-k.h[1],k.h[2]]:k.h,dv:mir?V(k.dv.x,-k.dv.y,k.dv.z):k.dv,tw:mir?-(k.tw||0):(k.tw||0),lf:k.lf||0,cr:k.cr||0,two:k.two??def.two,off:k.off?(mir?[k.off[0],-k.off[1],k.off[2]]:k.off):null}};
+ const k0=P_(i-1),k1=P_(i),k2=P_(i+1),k3=P_(i+2);const u=(EZ[K[i+1].e]||ease)(clamp((t-K[i].t)/(K[i+1].t-K[i].t),0,1)),u2=u*u,u3=u2*u;
+ const cr=(a,b,c,d)=>.5*(2*b+(-a+c)*u+(2*a-5*b+4*c-d)*u2+(-a+3*b-3*c+d)*u3);const dv=slerp(k1.dv,k2.dv,u);
+ const off=k1.off&&k2.off?k1.off.map((v,q)=>lerp(v,k2.off[q],u)):(k2.off||k1.off||g.off||null);
+ return{h:[0,1,2].map(q=>cr(k0.h[q],k1.h[q],k2.h[q],k3.h[q])),d:[dv.x,dv.y,dv.z],tw:lerp(k1.tw,k2.tw,u),lf:lerp(k1.lf,k2.lf,u),cr:lerp(k1.cr,k2.cr,u),two:lerp(k1.two,k2.two,u),off,k:70,plant:1}}
+function blendPose(a,b,t){const L=(x,y)=>x+(y-x)*t;return{h:a.h.map((v,i)=>L(v,b.h[i])),d:a.d.map((v,i)=>L(v,b.d[i])),tw:L(a.tw||0,b.tw||0),lf:L(a.lf||0,b.lf||0),two:L(a.two??0,b.two??0),
+ cr:L(a.cr||0,b.cr||0),ft:L(a.ft??.6,b.ft??.6),plant:b.plant||0,off:b.off?(a.off?a.off.map((v,i)=>L(v,b.off[i])):b.off.slice()):(a.off&&t<1?a.off.slice():null)}}
+// choose the next technique from where the sword is now, so cuts flow guard to guard
+function pickTech(a){const lead=a.body.lead,sw=a.sw;const side=sw.side||-lead;
+ if(now<(a.riposte||0))return{def:SW.stich,mir:lead>0};
+ if(!sw.high)return{def:SW.unter,mir:side>0};
+ if(a.combo>=2)return{def:SW.scheitel,mir:side<0};
+ return{def:rnd()<.3?SW.zwerch:SW.zorn,mir:side<0}}
 
 /* ================= body: gait cycle, IK, springs ================= */
 function newBody(s,x,y,face){
  const F=V(Math.cos(face),Math.sin(face),0),Rt=V(-Math.sin(face),Math.cos(face),0);
  return{s,face,twist:0,lf:0,lfv:0,ls:0,lsv:0,pose:null,j:{},hand:null,dir:null,prevV:null,sink:0,plume:null,cape:null,
-  gphase:0,pzo:0,pzv:0,hop:0,rec:[0,0,0],recv:[0,0,0],slide:false,lastBase:null,
+  gphase:0,lead:-1,pzo:0,pzv:0,hop:0,rec:[0,0,0],recv:[0,0,0],slide:false,lastBase:null,
   feet:[-1,1].map(side=>({side,pos:vadd(vadd(V(x,y/FY,0),vmul(F,side<0?s.stF:-s.stF)),vmul(Rt,side*s.stW)),from:null,to:null,t:0,step:false,swing:false,dur:.3,lift:0,yaw:face,pitch:0}))}}
 function bodyUpdate(b,a,dt,pose,onStep){
  const s=b.s,f=a.face,sc=s.scale;const F=V(Math.cos(f),Math.sin(f),0),Rt=V(-Math.sin(f),Math.cos(f),0);
@@ -338,7 +384,7 @@ function bodyUpdate(b,a,dt,pose,onStep){
  // feet slide with the body during a dash instead of scurrying
  if(b.slide&&b.lastBase){const dx=base.x-b.lastBase.x,dy=base.y-b.lastBase.y;for(const ft of b.feet){ft.pos=V(ft.pos.x+dx,ft.pos.y+dy,0);ft.swing=false;ft.step=false;ft.lift*=.8;ft.pitch*=.8}}
  b.lastBase=base;
- const walking=sp>22&&!b.slide;let D=.6,bob=0,sw=0;
+ const walking=sp>22&&!b.slide&&!ps.plant;let D=.6,bob=0,sw=0;
  if(walking){ // gait cycle: each foot plants for the stance phase, then swings heel-first to a landing ahead of the hip
   const vd=V(vel.x/sp,vel.y/sp,0),stepLen=clamp(15+sp*.085,15,38)*sc,rate=sp/(2*stepLen);D=sp>160?.44:.6;sw=clamp(sp/200,0,1);
   b.gphase=(b.gphase+rate*dt)%1;
@@ -352,12 +398,12 @@ function bodyUpdate(b,a,dt,pose,onStep){
     ft.yaw+=angTo(ft.yaw,f)*Math.min(1,dt*10);ft.step=true;ft.to=null;ft.t=u}}
   bob=Math.cos(4*Math.PI*(b.gphase-D/2))*(sp>160?2.2:1.3)*sc;
  }else{ // standing: deliberate re-positioning steps back into the fighting stance
-  for(const ft of b.feet){const ideal=vadd(vadd(base,vmul(F,ft.side<0?s.stF:-s.stF)),vmul(Rt,ft.side*s.stW));
+  for(const ft of b.feet){const rear=ft.side!==b.lead,ideal=vadd(vadd(base,vmul(F,rear?-s.stF:s.stF)),vmul(Rt,ft.side*s.stW)),yT=f+(rear?ft.side*.7:0);
    if(ft.swing||(ft.step&&!ft.to)){ft.swing=false;ft.step=true;ft.t=0;ft.dur=.2;ft.from=V(ft.pos.x,ft.pos.y,0);ft.to=ideal}
    if(ft.step){ft.t+=dt/ft.dur;const u=Math.min(1,ft.t);ft.pos=vlerp(ft.from,ft.to,ease(u));ft.lift=Math.sin(Math.PI*u)*4*sc;ft.pitch=Math.sin(Math.PI*u)*.18;
-    ft.yaw+=angTo(ft.yaw,f)*Math.min(1,dt*12);if(ft.t>=1){ft.step=false;ft.lift=0;ft.pitch=0}}
+    ft.yaw+=angTo(ft.yaw,yT)*Math.min(1,dt*12);if(ft.t>=1){ft.step=false;ft.lift=0;ft.pitch=0}}
    else if(!b.slide){ft.lift*=Math.exp(-dt*12);ft.pitch*=Math.exp(-dt*12);const other=b.feet[ft.side<0?1:0],d=Math.hypot(ft.pos.x-ideal.x,ft.pos.y-ideal.y);
-    if((d>9*sc||Math.abs(angTo(ft.yaw,f))>.8)&&!other.step){ft.step=true;ft.t=0;ft.dur=.26;ft.from=ft.pos;ft.to=ideal;b.pzv-=8}}}
+    if((d>(ps.plant?6:9)*sc||Math.abs(angTo(ft.yaw,yT))>.8)&&!other.step){ft.step=true;ft.t=0;ft.dur=ps.plant?.19:.26;ft.from=ft.pos;ft.to=vadd(ideal,vmul(vel,.08));b.pzv-=ps.plant?14:8}}}
   bob=Math.sin(now*2.1+(a.seed||0))*.7*sc; // breathing
  }
  const twWalk=walking?Math.sin(2*Math.PI*b.gphase)*.15*sw:0;b.twist=lerp(b.twist,ps.tw+twWalk,1-Math.exp(-dt*16));
@@ -449,7 +495,7 @@ function dropWeapon(a){const b=a.body;if(!b.hand)return;const s=b.s,len=a.kind==
 const SPAWN={x:WPX*.5,y:WPY*.5+170};
 function newActor(kind,x,y,face){const s=SPECS[kind];return{kind,s,x,y,vx:0,vy:0,face,body:newBody(s,x,y,face),anim:null,state:"idle",t:0,flash:0,stagger:0,dead:false,trail:[],hitSet:null,prevSeg:null,seed:rnd()*99,look:0}}
 const PL=Object.assign(newActor("knight",SPAWN.x,SPAWN.y,Math.PI/2),{hp:1200,hpMax:1200,st:100,stMax:100,lv:1,xp:0,gold:0,kills:0,combo:0,comboT:0,guard:false,guardT0:-9,
- dash:0,dashCd:0,inv:0,hurt:0,lastHit:-9,deadT:0,ghosts:[],ghostT:0,rag:null});
+ dash:0,dashCd:0,inv:0,hurt:0,lastHit:-9,deadT:0,ghosts:[],ghostT:0,rag:null,sw:{high:true,side:1},hold:null});
 const xpNeed=lv=>80+lv*70;
 const foes=[],parts=[],coins=[],nums=[],flies=[];let shake=0,hitStop=0,tScale=1,frameN=0;
 function spawnFoe(){
@@ -483,16 +529,16 @@ function playerUpdate(dt){
  let mx=0,my=0;if(keys.has("w")||keys.has("arrowup"))my-=1;if(keys.has("s")||keys.has("arrowdown"))my+=1;if(keys.has("a")||keys.has("arrowleft"))mx-=1;if(keys.has("d")||keys.has("arrowright"))mx+=1;
  if(stick.id!==null){mx=stick.x;my=stick.y}const ml=Math.hypot(mx,my);if(ml>1){mx/=ml;my/=ml}
  let want=a.face;if(mouse.on&&now-mouse.t<3&&!touchUI){const hx=mouse.x+camX-a.x,hy=mouse.y+camY-(a.y-70);want=Math.atan2(hy/FY,hx)}else if(ml>.15)want=Math.atan2(my/FY,mx);
- const an0=a.anim,locked=an0&&an0.t>an0.def.tm[1]&&an0.t<an0.def.tm[3];const rate=locked?2:an0?6:a.dash>0?4:12;a.face+=clamp(angTo(a.face,want),-rate*dt,rate*dt);
+ const an0=a.anim,locked=an0&&an0.t>an0.def.tm[1]&&an0.t<an0.def.tm[3];const rate=locked?2.5:an0?7:a.dash>0?4:10;a.face+=clamp(angTo(a.face,want),-rate*dt,rate*dt);
  a.look=clamp(angTo(a.face,want),-.6,.6);
  attackQ-=dt;a.comboT-=dt;a.dashCd-=dt;a.inv-=dt;a.hurt-=dt;a.flash-=dt;a.stagger-=dt;
  const holdG=keys.has("k")||guardM||guardT;
- if(holdG&&!a.guard&&!a.anim&&a.stagger<=0&&a.dash<=0&&a.st>5){a.guard=true;a.guardT0=now;a.gPose=rnd()<.5?KBLOCK:KHANG;b.pzv-=25}
+ if(holdG&&!a.guard&&!a.anim&&a.stagger<=0&&a.dash<=0&&a.st>5){a.guard=true;a.guardT0=now;{const gp=rnd()<.6?OCHS:HENG;a.gPose=b.lead<0?gp:mirP(gp)}b.pzv-=25}
  if(!holdG||a.anim||a.st<=0)a.guard=false;
  // attacks: a three-hit chain, buffered, each a full committed swing
  if(attackQ>0&&a.stagger<=0&&a.dash<=0&&a.st>=8&&(!a.anim||a.anim.t>a.anim.def.tm[3]-.06)){
-  const chain=!!a.anim||a.comboT>0;a.combo=chain?(a.combo+1)%3:0;const key=a.combo===0?(rnd()<.5?"A":"D"):a.combo===1?"B":"C";
-  a.anim={def:SW[key],t:0,lunged:false};a.hitSet=new Set();a.trail=[];attackQ=0;a.st-=8;a.guard=false}
+  const chain=!!a.anim||a.comboT>0;a.combo=chain?(a.combo+1)%3:0;if(!chain)a.sw={high:true,side:-b.lead};else if(a.anim){const pd=a.anim.def;a.sw={high:pd.end.high,side:pd.end.side*(a.anim.mir?-1:1)}}const pk=pickTech(a);
+  a.anim={def:pk.def,mir:pk.mir,t:0,lunged:false,p0:blendPose(b.pose,b.pose,0)};a.hitSet=new Set();a.trail=[];attackQ=0;a.st-=8;a.guard=false}
  // dash: lunge forward, side-step, or hop back depending on direction relative to facing
  if(dashQ&&a.dashCd<=0&&a.st>=20&&a.stagger<=0){
   a.st-=20;a.dashCd=.55;a.inv=.3;a.anim=null;a.guard=false;
@@ -502,18 +548,19 @@ function playerUpdate(dt){
   if(a.dashKind==="s")b.lsv-=Math.sign(rel)*9;if(a.dashKind==="f")b.lfv+=5;if(a.dashKind==="b")b.lfv-=5;
   burst(a.x,a.y,2,12,["#55b04f","#a2e07c","#3a2e24"],90,{life:.7,up:30,upR:60,sz:2})}
  dashQ=false;
- let pose=KG,spd=215,actDef=null;
+ if(a.comboT<=0&&!a.anim){a.hold=null;a.sw={high:true,side:-b.lead}}
+ const gd=b.lead<0?TAG:mirP(TAG);let pose=a.hold||gd,spd=a.hold?120:215,actDef=null;
  if(a.stagger>0){pose=KHIT;spd=40}
  else if(a.dash>0){a.dash-=dt;const u=clamp(1-a.dash/a.dashDur,0,1);pose=a.dashKind==="f"?KDF:a.dashKind==="b"?KDB:KDS;
   a.vx=a.dashV[0]*(.25+.75*(1-u*u));a.vy=a.dashV[1]*(.25+.75*(1-u*u));b.hop=a.dashKind==="b"?Math.sin(Math.PI*u)*13*a.s.scale:0;
   a.ghostT-=dt;if(a.ghostT<=0){a.ghostT=.03;a.ghosts.push({b:{...b,j:{...b.j}},t:0})}
   if(a.dash<=0){b.slide=false;b.hop=0;b.pzv-=a.dashKind==="b"?130:80;burst(a.x,a.y,1,8,["#5a4a3a","#7a6a52"],50,{life:.6,up:20,upR:40,sz:3,g:120,kind:"dust"})}}
- else if(a.anim){const an=a.anim,d=an.def;an.t+=dt/d.dur;pose=arcPose(d,Math.min(an.t,1),a.gPose&&a.guard?a.gPose:KG);spd=45;
-  if(!an.lunged&&an.t>=d.lungeT){an.lunged=true;const[fx,fy]=worldDir(a.face);a.vx+=fx*d.push;a.vy+=fy*d.push;b.pzv-=d.heavy?45:22}
+ else if(a.anim){const an=a.anim,d=an.def;an.t+=dt/d.dur;pose=sampleTech(d,Math.min(an.t,1),an.mir,gd,an.p0);spd=40;
+  if(!an.lunged&&an.t>=d.lungeT){an.lunged=true;const[fx,fy]=worldDir(a.face+d.dirOff*(an.mir?-1:1));a.vx+=fx*d.push;a.vy+=fy*d.push;b.pzv-=d.heavy?40:20;if(d.pass)b.lead*=-1}
   if(d.dmg>0&&an.t>=d.act[0]&&an.t<=d.act[1])actDef=d;
-  if(an.t>=1){a.anim=null;a.comboT=.4}}
+  if(an.t>=1){a.sw={high:d.end.high,side:d.end.side*(an.mir?-1:1)};a.hold={...sampleTech(d,1,an.mir,gd,an.p0),plant:0,k:8};a.anim=null;a.comboT=.55}}
  else if(a.guard){pose=a.gPose;spd=95;a.st=Math.max(0,a.st-4*dt)}
- else if(ml>.15&&Math.hypot(a.vx,a.vy)>120)pose=KRUN;
+ 
  if(a.dash<=0){const k=a.stagger>0?3:a.anim?5:11;a.vx=lerp(a.vx,mx*spd,1-Math.exp(-dt*k));a.vy=lerp(a.vy,my*spd,1-Math.exp(-dt*k))}
  moveEnt(a,dt);
  if(!a.anim&&!a.guard&&a.dash<=0)a.st=Math.min(a.stMax,a.st+30*dt);if(now-a.lastHit>4)a.hp=Math.min(a.hpMax,a.hp+a.hpMax*.012*dt);
@@ -542,7 +589,7 @@ function killFoe(e,fx,fy,push){e.dead=true;PL.kills++;e.rag=makeRagdoll(e,V(fx*(
 function hurtPlayer(e,dmg,q){const a=PL;if(a.inv>0||a.dead)return;
  const toE=Math.atan2((e.y-a.y)/FY,e.x-a.x),front=Math.abs(angTo(a.face,toE))<1.25;const qx=q?PX(q):a.x,qy=q?q.y*FY:a.y,qz=q?q.z:90;
  if(a.guard&&front){const perfect=now-a.guardT0<.2;
-  if(perfect){sparks(qx,qy,qz,30,320);a.anim={def:SW.P,t:0,lunged:true};a.hitSet=new Set();a.trail=[];a.riposte=now+1.3;a.guard=false;e.stagger=1.1;e.state="stagger";e.anim=null;leanKick(e,a.x,a.y,10);tScale=.25;shake=8;addNum(a.x,a.y-a.s.height-24,"PARRY","#7fe0ff",true);a.st=Math.min(a.stMax,a.st+25);return}
+  if(perfect){sparks(qx,qy,qz,30,320);a.anim={def:SW.P,mir:a.body.lead>0,t:0,lunged:true,p0:blendPose(a.body.pose,a.body.pose,0)};a.hitSet=new Set();a.trail=[];a.riposte=now+1.3;a.guard=false;e.stagger=1.1;e.state="stagger";e.anim=null;leanKick(e,a.x,a.y,10);tScale=.25;shake=8;addNum(a.x,a.y-a.s.height-24,"PARRY","#7fe0ff",true);a.st=Math.min(a.stMax,a.st+25);return}
   const cost=e.kind==="brute"?55:22;a.st-=cost;a.body.recv[0]-=e.kind==="brute"?260:170;a.body.recv[2]-=80;a.body.pzv-=e.kind==="brute"?110:60;sparks(qx,qy,qz,16,220);leanKick(a,e.x,e.y,6);const[fx,fy]=worldDir(e.face);a.vx+=fx*150;a.vy+=fy*150;shake=Math.max(shake,4);hitStop=.05;
   if(a.st<0){a.st=0;a.guard=false;a.stagger=.6;addNum(a.x,a.y-a.s.height-24,"GUARD BROKEN","#ff8a6a",false)}else return}
  a.hp-=dmg;a.hurt=.25;a.inv=.5;a.flash=.1;a.lastHit=now;a.anim=null;a.stagger=.3;a.body.pzv-=80;shake=Math.max(shake,8);hitStop=.06;
@@ -566,9 +613,9 @@ function foeUpdate(e,dt){
  else if(PL.dead){pose=G0;}
  else if(e.state==="approach"){mvx=dx/dist;mvy=dy/dist;if(dist<reach*1.5){e.state="circle";e.t=0;e.circleT=.5+rnd()*1.5;e.circleDir=rnd()<.5?1:-1}}
  else if(e.state==="circle"){const want=reach*1.25,radial=clamp((dist-want)/40,-1,1);mvx=dx/dist*radial-dy/dist*e.circleDir*.8;mvy=dy/dist*radial+dx/dist*e.circleDir*.8;spd*=.6;
-  if(e.t>e.circleT&&e.atkCd<=0&&dist<reach*1.6){e.state="attack";e.anim={def:SW[brute?"X":"S"],t:0,lunged:false};e.hit=false;e.trail=[]}
+  if(e.t>e.circleT&&e.atkCd<=0&&dist<reach*1.6){e.state="attack";e.anim={def:SW[brute?"X":"S"],t:0,lunged:false,p0:blendPose(b.pose,b.pose,0)};e.hit=false;e.trail=[]}
   if(dist>reach*2.4)e.state="approach"}
- else if(e.state==="attack"){const an=e.anim,d=an.def;const rate=an.t<d.wind?.85:1;an.t+=dt/d.dur*rate;pose=arcPose(d,Math.min(1,an.t),G0);spd=0;turn=an.t<d.wind?3.5:.5;
+ else if(e.state==="attack"){const an=e.anim,d=an.def;const rate=an.t<d.wind?.85:1;an.t+=dt/d.dur*rate;pose=sampleTech(d,Math.min(1,an.t),false,G0,an.p0);spd=0;turn=an.t<d.wind?3.5:.5;
   if(an.t<d.wind&&dist>reach*.8){mvx=dx/dist;mvy=dy/dist;spd=brute?40:55}
   if(!an.lunged&&an.t>=d.lungeT){an.lunged=true;const[fx,fy]=worldDir(e.face);e.vx+=fx*d.push/e.s.mass*1.4;e.vy+=fy*d.push/e.s.mass*1.4;e.jaw=1}
   e.act=!e.hit&&an.t>=d.act[0]&&an.t<=d.act[1];
