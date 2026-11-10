@@ -281,100 +281,109 @@ const SPECS={
 
 /* ================= poses & sword choreography (knight units: forward, right, up) ================= */
 const KG={h:[17,7,86],d:[.5,-.3,.81],tw:.12,lf:.04,two:1};
-const KBLOCK={h:[19,-3,114],d:[.18,-.97,.14],tw:0,lf:-.05,two:1,k:30};
+const KBLOCK={h:[19,-3,114],d:[.25,-.95,.2],tw:.05,lf:-.05,two:1,k:26};          // high cross guard
+const KHANG={h:[14,9,122],d:[.42,-.62,-.66],tw:-.12,lf:-.02,two:1,k:26};         // hanging guard, point down across the body
 const KRUN={h:[13,11,80],d:[.78,-.05,.62],tw:.05,lf:0,two:0};
-const KDASH={h:[10,12,74],d:[.2,.1,-.97],tw:.2,lf:.5,two:0,k:30};
+const KDF={h:[-6,14,80],d:[-.75,.35,-.35],tw:.55,lf:.5,two:0,cr:14,k:28};          // forward lunge, blade drawn back low
+const KDB={h:[16,0,112],d:[.3,-.9,.3],tw:0,lf:-.35,two:1,cr:4,k:28};              // back-hop, guard up
+const KDS={h:[15,8,90],d:[.6,-.4,.7],tw:.1,lf:.1,two:1,cr:10,k:28};               // side-step
 const KHIT={h:[6,15,74],d:[.2,.45,-.86],tw:-.35,lf:-.25,two:0,k:30};
 const SG_={h:[14,10,80],d:[.78,.08,.6],tw:.05,lf:.08,two:0,off:[10,-13,90]};
 const SBLOCK={h:[12,11,80],d:[.7,.2,.65],tw:-.15,lf:0,two:0,off:[17,-4,104],k:40};
 const BG_={h:[15,6,84],d:[.55,-.25,.8],tw:.1,lf:.1,two:1};
-const G={g:1};
+const ease=u=>u*u*(3-2*u);
+// A swing is the sword travelling round a tilted plane through the body: coil, hold, accelerate, follow through, recover.
+function arcDef(o){const u0=vnorm(V(...o.u0)),m=vnorm(V(...o.mid)),N=vnorm(vcross(u0,m)),W=vcross(N,u0),tm=o.tm||[.28,.34,.54,.74];
+ return{tw0:0,tw1:0,lf0:0,lf1:.2,cr:5,two:1,R:30,dmg:1,push:180,...o,U0:u0,W,thC:Math.acos(clamp(vdot(u0,m),-1,1)),tm,
+  act:[tm[1]+(tm[2]-tm[1])*.35,tm[3]-.04],lungeT:tm[1],wind:tm[1]}}
+function arcPose(d,t,g){const T=d.tm,TH=d.Th,thS=Math.min(TH-.2,d.thC+.5);let th,w;
+ if(t<T[0]){const u=ease(t/T[0]);th=-.22*u;w=u}
+ else if(t<T[1]){th=-.22-.06*(t-T[0])/(T[1]-T[0]);w=1}
+ else if(t<T[2]){const u=(t-T[1])/(T[2]-T[1]);th=-.28+(thS+.28)*u*u;w=1}
+ else if(t<T[3]){const u=(t-T[2])/(T[3]-T[2]);th=thS+(TH-thS)*(1-(1-u)*(1-u));w=1}
+ else{th=TH;w=1-ease((t-T[3])/(1-T[3]))}
+ const r=vadd(vmul(d.U0,Math.cos(th)),vmul(d.W,Math.sin(th))),R=d.R,p=d.piv,k=clamp(th/TH,0,1);
+ const strike=t>T[1]&&t<T[3]?Math.sin(Math.PI*clamp((t-T[1])/(T[3]-T[1]),0,1)):0;
+ const A={h:[p[0]+r.x*R,p[1]+r.y*R,p[2]+r.z*R],d:[r.x,r.y,r.z],tw:lerp(d.tw0,d.tw1,k),lf:lerp(d.lf0,d.lf1,k),two:d.two,cr:d.cr*(.35+.65*strike),ft:0,off:d.off||g.off};
+ const o=blendPose(g,A,w);o.k=w>.99?90:40;return o}
 const SW={
- A:{dur:.46,act:[.44,.74],dmg:1,push:170,lungeT:.42,keys:[{t:0,...G},
-  {t:.3,h:[-2,20,112],d:[-.35,.55,.75],tw:.7,lf:-.06,two:.6},{t:.47,h:[20,12,102],d:[.7,.35,.35],tw:.3,lf:.08,two:0},
-  {t:.6,h:[26,-4,90],d:[.85,-.45,-.1],tw:-.4,lf:.22,two:0},{t:.78,h:[8,-22,76],d:[-.05,-.85,-.5],tw:-.85,lf:.16,two:0},{t:1,...G}]},
- B:{dur:.44,act:[.42,.72],dmg:1,push:160,lungeT:.4,keys:[{t:0,...G},
-  {t:.28,h:[4,-18,84],d:[-.25,-.85,.35],tw:-.75,lf:-.04,two:.3},{t:.46,h:[22,-8,92],d:[.75,-.45,.2],tw:-.25,lf:.1,two:0},
-  {t:.6,h:[24,12,100],d:[.6,.72,.25],tw:.45,lf:.2,two:0},{t:.8,h:[2,22,112],d:[-.35,.7,.6],tw:.75,lf:.1,two:0},{t:1,...G}]},
- C:{dur:.62,act:[.5,.78],dmg:1.75,push:230,lungeT:.48,heavy:true,keys:[{t:0,...G},
-  {t:.36,h:[-4,5,138],d:[-.75,.05,.6],tw:.15,lf:-.16,two:1},{t:.52,h:[18,3,126],d:[.55,0,.82],tw:.05,lf:.05,two:1},
-  {t:.64,h:[32,1,88],d:[.88,0,-.45],tw:0,lf:.38,two:1},{t:.82,h:[26,0,62],d:[.55,0,-.82],tw:0,lf:.32,two:1},{t:1,...G}]},
- // skeleton swordsman: long readable windup, then a fast cut
- S:{dur:1.0,act:[.62,.8],dmg:1,push:230,lungeT:.6,wind:.55,keys:[{t:0,...G},
-  {t:.5,h:[-4,18,118],d:[-.45,.5,.72],tw:.75,lf:-.12,two:0,off:[12,-12,92]},{t:.64,h:[24,8,98],d:[.8,.3,.3],tw:.2,lf:.15,two:0,off:[10,-14,88]},
-  {t:.74,h:[26,-8,84],d:[.8,-.55,-.2],tw:-.5,lf:.28,two:0,off:[8,-15,86]},{t:.86,h:[8,-20,74],d:[0,-.85,-.5],tw:-.8,lf:.15,two:0,off:[8,-14,86]},{t:1,...G}]},
- // brute: huge overhead axe
- X:{dur:1.35,act:[.66,.84],dmg:2.4,push:330,lungeT:.64,wind:.58,heavy:true,keys:[{t:0,...G},
-  {t:.52,h:[-8,4,144],d:[-.7,.05,.7],tw:.1,lf:-.22,two:1},{t:.66,h:[20,2,128],d:[.6,0,.8],tw:0,lf:.05,two:1},
-  {t:.76,h:[34,1,80],d:[.88,0,-.48],tw:0,lf:.45,two:1},{t:.9,h:[28,0,56],d:[.55,0,-.84],tw:0,lf:.38,two:1},{t:1,...G}]},
+ A:arcDef({u0:[-.45,.5,.74],mid:[.92,-.15,-.35],Th:3.7,piv:[2,3,106],R:30,tw0:.85,tw1:-.95,lf0:-.1,lf1:.32,cr:6,dur:.7,push:190}),               // high diagonal hack
+ D:arcDef({u0:[-.25,.92,.12],mid:[1,0,-.05],Th:3.5,piv:[0,0,102],R:31,tw0:1,tw1:-1.1,lf0:0,lf1:.22,cr:7,dur:.7,push:200}),                          // flat sweep
+ B:arcDef({u0:[-.3,-.8,-.3],mid:[.95,.1,.15],Th:3.4,piv:[2,-2,100],R:30,tw0:-.9,tw1:.9,lf0:-.05,lf1:.25,cr:5,dur:.66,push:170}),                    // rising backhand
+ C:arcDef({u0:[-.75,.05,.66],mid:[.8,0,-.25],Th:3.25,piv:[0,4,112],R:32,tw0:.25,tw1:-.15,lf0:-.3,lf1:.55,cr:12,dur:.9,dmg:1.8,push:250,heavy:true,tm:[.36,.44,.6,.78]}), // overhead chop
+ P:arcDef({u0:[.3,-.85,.45],mid:[.9,.4,.2],Th:1.9,piv:[0,0,104],R:30,tw0:-.4,tw1:.5,lf0:-.1,lf1:.1,cr:4,dur:.4,dmg:0,push:0,tm:[.1,.12,.45,.62]}),  // parry deflection
+ S:arcDef({u0:[-.45,.5,.74],mid:[.92,-.15,-.35],Th:3.5,piv:[2,3,104],R:28,tw0:.8,tw1:-.85,lf0:-.15,lf1:.3,cr:5,dur:1.05,push:230,two:0,off:[10,-13,90],tm:[.48,.56,.7,.85]}),
+ X:arcDef({u0:[-.75,.05,.66],mid:[.8,0,-.25],Th:3.2,piv:[0,4,112],R:32,tw0:.2,tw1:-.1,lf0:-.3,lf1:.55,cr:12,dur:1.4,dmg:2.4,push:330,heavy:true,tm:[.5,.58,.72,.86]}),
 };
-const COMBO=["A","B","C"];
-function sampleSwing(def,t,g){const K=def.keys;let i=0;while(i<K.length-2&&t>K[i+1].t)i++;
- const at=k=>k.g?g:k,k0=at(K[Math.max(0,i-1)]),k1=at(K[i]),k2=at(K[i+1]),k3=at(K[Math.min(K.length-1,i+2)]);
- let u=clamp((t-K[i].t)/(K[i+1].t-K[i].t),0,1);u=u*u*(3-2*u);const u2=u*u,u3=u2*u;
- const cr=(a,b,c,d)=>.5*(2*b+(-a+c)*u+(2*a-5*b+4*c-d)*u2+(-a+3*b-3*c+d)*u3);
- const o1=k1.off||g.off,o2=k2.off||g.off;
- return{h:[0,1,2].map(q=>cr(k0.h[q],k1.h[q],k2.h[q],k3.h[q])),d:[0,1,2].map(q=>lerp(k1.d[q],k2.d[q],u)),tw:lerp(k1.tw,k2.tw,u),lf:lerp(k1.lf,k2.lf,u),two:lerp(k1.two,k2.two,u),
-  off:o1&&o2?[0,1,2].map(q=>lerp(o1[q],o2[q],u)):null,k:60}}
-function blendPose(a,b,t){const L=(x,y)=>x+(y-x)*t;return{h:a.h.map((v,i)=>L(v,b.h[i])),d:a.d.map((v,i)=>L(v,b.d[i])),tw:L(a.tw,b.tw),lf:L(a.lf,b.lf),two:L(a.two,b.two),
- off:b.off?(a.off?a.off.map((v,i)=>L(v,b.off[i])):b.off.slice()):null}}
+function blendPose(a,b,t){const L=(x,y)=>x+(y-x)*t;return{h:a.h.map((v,i)=>L(v,b.h[i])),d:a.d.map((v,i)=>L(v,b.d[i])),tw:L(a.tw,b.tw),lf:L(a.lf,b.lf),two:L(a.two??0,b.two??0),
+ cr:L(a.cr||0,b.cr||0),ft:L(a.ft??.6,b.ft??.6),off:b.off?(a.off?a.off.map((v,i)=>L(v,b.off[i])):b.off.slice()):(a.off&&t<1?a.off.slice():null)}}
 
-/* ================= body: procedural gait, IK, lean springs ================= */
+/* ================= body: gait cycle, IK, springs ================= */
 function newBody(s,x,y,face){
- const b={s,face,twist:0,lf:0,lfv:0,ls:0,lsv:0,pose:null,j:{},hand:null,dir:null,prevV:null,sink:0,plume:null,cape:null,
-  feet:[-1,1].map(side=>{const F=V(Math.cos(face),Math.sin(face),0),R=V(-Math.sin(face),Math.cos(face),0);
-   return{side,pos:vadd(vadd(V(x,y/FY,0),vmul(F,side<0?s.stF:-s.stF)),vmul(R,side*s.stW)),from:null,to:null,t:0,step:false,dur:.25,lift:0,yaw:face}})};
- return b}
+ const F=V(Math.cos(face),Math.sin(face),0),Rt=V(-Math.sin(face),Math.cos(face),0);
+ return{s,face,twist:0,lf:0,lfv:0,ls:0,lsv:0,pose:null,j:{},hand:null,dir:null,prevV:null,sink:0,plume:null,cape:null,
+  gphase:0,pzo:0,pzv:0,hop:0,rec:[0,0,0],recv:[0,0,0],slide:false,lastBase:null,
+  feet:[-1,1].map(side=>({side,pos:vadd(vadd(V(x,y/FY,0),vmul(F,side<0?s.stF:-s.stF)),vmul(Rt,side*s.stW)),from:null,to:null,t:0,step:false,swing:false,dur:.3,lift:0,yaw:face,pitch:0}))}}
 function bodyUpdate(b,a,dt,pose,onStep){
  const s=b.s,f=a.face,sc=s.scale;const F=V(Math.cos(f),Math.sin(f),0),Rt=V(-Math.sin(f),Math.cos(f),0);
  const base=V(a.x,a.y/FY,0),vel=V(a.vx,a.vy/FY,0),sp=Math.hypot(vel.x,vel.y);
- b.pose=b.pose?blendPose(b.pose,pose,1-Math.exp(-dt*(pose.k||16))):blendPose(pose,pose,0);const ps=b.pose;
- // lean springs (bounce when stopping, recoil on hits)
+ b.pose=b.pose?blendPose(b.pose,pose,1-Math.exp(-dt*(pose.k||14))):blendPose(pose,pose,0);const ps=b.pose;
+ // lean springs: overshoot when stopping, recoil on hits
  const acc=b.prevV?vmul(vsub(vel,b.prevV),1/Math.max(dt,.001)):V(0,0,0);b.prevV=vel;
  const tf=clamp(vdot(vel,F)*.0011+vdot(acc,F)*.00016,-.3,.4)+ps.lf,ts=clamp(-vdot(vel,Rt)*.0006-vdot(acc,Rt)*.0001,-.25,.25);
- b.lfv+=((tf-b.lf)*120-b.lfv*12)*dt;b.lf+=b.lfv*dt;b.lsv+=((ts-b.ls)*120-b.lsv*12)*dt;b.ls+=b.lsv*dt;
- b.lf=clamp(b.lf,-.7,.8);b.ls=clamp(b.ls,-.5,.5);
- // feet: planted until too far from where they should be, then a lifted step
- const run=sp>70;
- for(const ft of b.feet){
-  const ox=run?ft.side*1.5*sc:(ft.side<0?s.stF:-s.stF),oy=ft.side*(run?s.hipW*.95:s.stW);
-  const ideal=vadd(vadd(vadd(base,vmul(F,ox)),vmul(Rt,oy)),vmul(vel,.13));
-  if(ft.step){ft.t+=dt/ft.dur;const u=Math.min(1,ft.t),e=u*u*(3-2*u);ft.pos=vlerp(ft.from,ft.to,e);ft.lift=Math.sin(Math.PI*u)*(3+Math.min(sp,320)*.028)*sc;
-   if(ft.t>=1){ft.step=false;ft.lift=0;if(onStep)onStep(ft.pos,sp)}}
-  else{const other=b.feet[ft.side<0?1:0],d=Math.hypot(ft.pos.x-ideal.x,ft.pos.y-ideal.y),th=(6+sp*.04)*sc;
-   const yawOff=Math.abs(angTo(ft.yaw,f));
-   if((d>th||yawOff>.9)&&(!other.step||other.t>.55)){ft.step=true;ft.t=0;ft.dur=clamp(.3-sp*.00055,.12,.3);ft.from=ft.pos;ft.to=vadd(ideal,vmul(vel,ft.dur*.5));ft.yaw=f}}
+ b.lfv+=((tf-b.lf)*120-b.lfv*12)*dt;b.lf+=b.lfv*dt;b.lsv+=((ts-b.ls)*120-b.lsv*12)*dt;b.ls+=b.lsv*dt;b.lf=clamp(b.lf,-.7,.8);b.ls=clamp(b.ls,-.5,.5);
+ // pelvis height spring (landings, impacts) and hand recoil spring (blocks)
+ b.pzv+=(-b.pzo*170-b.pzv*15)*dt;b.pzo=clamp(b.pzo+b.pzv*dt,-16*sc,6*sc);
+ for(let i=0;i<3;i++){b.recv[i]+=(-b.rec[i]*180-b.recv[i]*16)*dt;b.rec[i]+=b.recv[i]*dt}
+ // feet slide with the body during a dash instead of scurrying
+ if(b.slide&&b.lastBase){const dx=base.x-b.lastBase.x,dy=base.y-b.lastBase.y;for(const ft of b.feet){ft.pos=V(ft.pos.x+dx,ft.pos.y+dy,0);ft.swing=false;ft.step=false;ft.lift*=.8;ft.pitch*=.8}}
+ b.lastBase=base;
+ const walking=sp>22&&!b.slide;let D=.6,bob=0,sw=0;
+ if(walking){ // gait cycle: each foot plants for the stance phase, then swings heel-first to a landing ahead of the hip
+  const vd=V(vel.x/sp,vel.y/sp,0),stepLen=clamp(15+sp*.085,15,38)*sc,rate=sp/(2*stepLen);D=sp>160?.44:.6;sw=clamp(sp/200,0,1);
+  b.gphase=(b.gphase+rate*dt)%1;
+  for(const ft of b.feet){const p=(b.gphase+(ft.side<0?0:.5))%1;
+   if(p<D){if(ft.swing){ft.swing=false;if(onStep)onStep(ft.pos,sp)}ft.step=false;const k=clamp((p/D-.62)/.38,0,1);ft.pitch=-k*.6;ft.lift=k*k*2.5*sc}
+   else{const u=(p-D)/(1-D);if(!ft.swing){ft.swing=true;ft.from=V(ft.pos.x,ft.pos.y,0)}
+    const tl=(1-p)/rate,land=vadd(vadd(vadd(base,vmul(vel,tl)),vmul(Rt,ft.side*s.hipW*1.1)),vmul(vd,stepLen*D*.9)),e=ease(u);
+    ft.pos=V(lerp(ft.from.x,land.x,e),lerp(ft.from.y,land.y,e),0);
+    ft.lift=Math.sin(Math.PI*u)*(3+sp*.02)*sc+(u<.3?(1-u/.3)*2.5*sc:0);
+    ft.pitch=u<.45?-.6*(1-u/.45):.34*Math.sin(Math.PI*(u-.45)/.55);
+    ft.yaw+=angTo(ft.yaw,f)*Math.min(1,dt*10);ft.step=true;ft.to=null;ft.t=u}}
+  bob=Math.cos(4*Math.PI*(b.gphase-D/2))*(sp>160?2.2:1.3)*sc;
+ }else{ // standing: deliberate re-positioning steps back into the fighting stance
+  for(const ft of b.feet){const ideal=vadd(vadd(base,vmul(F,ft.side<0?s.stF:-s.stF)),vmul(Rt,ft.side*s.stW));
+   if(ft.swing||(ft.step&&!ft.to)){ft.swing=false;ft.step=true;ft.t=0;ft.dur=.2;ft.from=V(ft.pos.x,ft.pos.y,0);ft.to=ideal}
+   if(ft.step){ft.t+=dt/ft.dur;const u=Math.min(1,ft.t);ft.pos=vlerp(ft.from,ft.to,ease(u));ft.lift=Math.sin(Math.PI*u)*4*sc;ft.pitch=Math.sin(Math.PI*u)*.18;
+    ft.yaw+=angTo(ft.yaw,f)*Math.min(1,dt*12);if(ft.t>=1){ft.step=false;ft.lift=0;ft.pitch=0}}
+   else if(!b.slide){ft.lift*=Math.exp(-dt*12);ft.pitch*=Math.exp(-dt*12);const other=b.feet[ft.side<0?1:0],d=Math.hypot(ft.pos.x-ideal.x,ft.pos.y-ideal.y);
+    if((d>9*sc||Math.abs(angTo(ft.yaw,f))>.8)&&!other.step){ft.step=true;ft.t=0;ft.dur=.26;ft.from=ft.pos;ft.to=ideal;b.pzv-=8}}}
+  bob=Math.sin(now*2.1+(a.seed||0))*.7*sc; // breathing
  }
- const stepping=b.feet.find(q=>q.step);
- // pelvis: crouched fighting stance, bobs over the planted leg, sinks to keep feet reachable
- const twWalk=stepping&&run?-stepping.side*Math.sin(Math.PI*stepping.t)*.16:0;
- b.twist=lerp(b.twist,ps.tw+twWalk,1-Math.exp(-dt*18));
+ const twWalk=walking?Math.sin(2*Math.PI*b.gphase)*.15*sw:0;b.twist=lerp(b.twist,ps.tw+twWalk,1-Math.exp(-dt*16));
  const Fp=rotZ(F,-b.twist*.35),Rp=rotZ(Rt,-b.twist*.35);
- let pz=s.hipZ-(run?2.5:6)*sc-(ps.cr||0)*sc;if(stepping)pz+=(Math.sin(Math.PI*Math.min(1,stepping.t))-.55)*2.4*sc;
- let pel=vadd(V(base.x,base.y,pz),vmul(F,-b.lf*5*sc));
- const legL=(s.thigh+s.shin)*.985;
- for(const ft of b.feet){const hip=vmad(pel,Rp,ft.side*s.hipW),fp=V(ft.pos.x,ft.pos.y,ft.lift+s.ankle),hd=Math.hypot(hip.x-fp.x,hip.y-fp.y);
-  const mz=hd<legL?fp.z+Math.sqrt(legL*legL-hd*hd):fp.z+2;if(pel.z>mz)pel.z=mz}
- // spine and chest frame
+ let pel=vadd(V(base.x,base.y,s.hipZ-(walking?(sp>160?4.5:3.5):7)*sc-(ps.cr||0)*sc+bob+b.pzo+b.hop),vmul(F,-b.lf*5*sc));
+ if(walking)pel=vmad(pel,Rt,Math.sin(2*Math.PI*b.gphase)*1.6*sc); // hips shift over the stance foot
+ const legL=(s.thigh+s.shin)*.985,fz=ft=>ft.lift+s.ankle+b.hop*.9;
+ for(const ft of b.feet){const hip=vmad(pel,Rp,ft.side*s.hipW),hd=Math.hypot(hip.x-ft.pos.x,hip.y-ft.pos.y),z=fz(ft);const mz=hd<legL?z+Math.sqrt(legL*legL-hd*hd):z+2;if(pel.z>mz)pel.z=mz}
  const Fc0=rotZ(F,b.twist),Rc0=rotZ(Rt,b.twist);
- const Uc=vnorm(vadd(vadd(UP,vmul(Fc0,Math.sin(b.lf))),vmul(Rc0,Math.sin(b.ls))));
- const Fc=vnorm(vsub(Fc0,vmul(Uc,vdot(Fc0,Uc)))),Rc=vcross(Uc,Fc);
- const chest=vmad(pel,Uc,s.spine),neck=vmad(chest,Uc,s.neck);
- const hy=b.twist*.45+(a.look||0);const Fh0=rotZ(F,hy);const Uh=vnorm(vadd(Uc,vmul(UP,1.2)));const Fh=vnorm(vsub(Fh0,vmul(Uh,vdot(Fh0,Uh)))),Rh=vcross(Uh,Fh);
+ const Uc=vnorm(vadd(vadd(UP,vmul(Fc0,Math.sin(b.lf))),vmul(Rc0,Math.sin(b.ls)))),Fc=vnorm(vsub(Fc0,vmul(Uc,vdot(Fc0,Uc)))),Rc=vcross(Uc,Fc);
+ const chest=vmad(pel,Uc,s.spine+(walking?0:Math.sin(now*2.1+(a.seed||0))*.5*sc)),neck=vmad(chest,Uc,s.neck);
+ const Fh0=rotZ(F,b.twist*.45+(a.look||0)),Uh=vnorm(vadd(Uc,vmul(UP,1.2))),Fh=vnorm(vsub(Fh0,vmul(Uh,vdot(Fh0,Uh)))),Rh=vcross(Uh,Fh);
  const head=vadd(vmad(neck,Uh,s.headR*.85),vmul(Fh,1.2*sc));
- const shL=vmad(vmad(chest,Rc,-s.shW),Uc,-3*sc),shR=vmad(vmad(chest,Rc,s.shW),Uc,-3*sc);
- const hipL=vmad(pel,Rp,-s.hipW),hipR=vmad(pel,Rp,s.hipW);
+ const shL=vmad(vmad(chest,Rc,-s.shW),Uc,-3*sc),shR=vmad(vmad(chest,Rc,s.shW),Uc,-3*sc),hipL=vmad(pel,Rp,-s.hipW),hipR=vmad(pel,Rp,s.hipW);
  const J={pel,chest,neck,head,shL,shR,hipL,hipR};
- for(const ft of b.feet){const k=ft.side<0?"L":"R",hip=ft.side<0?hipL:hipR;const T=V(ft.pos.x,ft.pos.y,ft.lift+s.ankle);
-  const leg=ik(hip,T,s.thigh,s.shin,vnorm(vadd(Fp,vmul(Rp,ft.side*.3))));J["kn"+k]=leg.mid;J["ft"+k]=leg.end;
-  const fy=V(Math.cos(ft.yaw),Math.sin(ft.yaw),0);J["toe"+k]=V(leg.end.x+fy.x*9*sc,leg.end.y+fy.y*9*sc,Math.max(1,leg.end.z-s.ankle+1.5))}
+ for(const ft of b.feet){const k=ft.side<0?"L":"R",hip=ft.side<0?hipL:hipR;
+  const leg=ik(hip,V(ft.pos.x,ft.pos.y,fz(ft)),s.thigh,s.shin,vnorm(vadd(Fp,vmul(Rp,ft.side*.3))));J["kn"+k]=leg.mid;J["ft"+k]=leg.end;
+  const fd=V(Math.cos(ft.yaw),Math.sin(ft.yaw),0),cp=Math.cos(ft.pitch),spi=Math.sin(ft.pitch),fv=V(fd.x*cp,fd.y*cp,spi),sole=vmul(V(-fd.x*spi,-fd.y*spi,cp),-s.ankle*.85);
+  const toe=vadd(vmad(leg.end,fv,10*sc),sole),heel=vadd(vmad(leg.end,fv,-3.5*sc),sole);toe.z=Math.max(1,toe.z);heel.z=Math.max(1,heel.z);J["toe"+k]=toe;J["heel"+k]=heel}
  // arms
- const Fa=rotZ(F,b.twist*.6),Ra=rotZ(Rt,b.twist*.6);const leanD=vsub(chest,V(pel.x,pel.y,pel.z+s.spine));const dz=pel.z-s.hipZ;
+ const Fa=rotZ(F,b.twist*(ps.ft??.6)),Ra=rotZ(Rt,b.twist*(ps.ft??.6)),leanD=vsub(chest,V(pel.x,pel.y,pel.z+s.spine)),dz=pel.z-s.hipZ;
  const loc=h=>vadd(V(base.x+Fa.x*h[0]*sc+Ra.x*h[1]*sc,base.y+Fa.y*h[0]*sc+Ra.y*h[1]*sc,h[2]*sc+dz),leanD);
  const dir=vnorm(V(Fa.x*ps.d[0]+Ra.x*ps.d[1],Fa.y*ps.d[0]+Ra.y*ps.d[1],ps.d[2]));
- const armR=ik(shR,loc(ps.h),s.upper,s.fore,vnorm(vadd(vadd(vmul(Uc,-1),vmul(Rc,.75)),vmul(Fc,-.45))));
- const pump=stepping&&run?-stepping.side*Math.sin(Math.PI*stepping.t)*10:0;
- const idle=loc(ps.off||[4+pump,-15,70]);const grip=vmad(armR.end,dir,-7*sc);
+ const ht=[ps.h[0]+b.rec[0],ps.h[1]+b.rec[1],ps.h[2]+b.rec[2]];
+ const armR=ik(shR,loc(ht),s.upper,s.fore,vnorm(vadd(vadd(vmul(Uc,-1),vmul(Rc,.75)),vmul(Fc,-.45))));
+ const pump=walking?Math.sin(2*Math.PI*b.gphase)*10*sw:0,idle=loc(ps.off||[4+pump,-15,70]),grip=vmad(armR.end,dir,-7*sc);
  const armL=ik(shL,vlerp(idle,grip,clamp(ps.two,0,1)),s.upper,s.fore,vnorm(vadd(vadd(vmul(Uc,-1),vmul(Rc,-.75)),vmul(Fc,-.4))));
  J.elR=armR.mid;J.haR=armR.end;J.elL=armL.mid;J.haL=armL.end;
  if(b.sink)for(const k in J)J[k]=V(J[k].x,J[k].y,J[k].z-b.sink);
@@ -425,7 +434,7 @@ function makeRagdoll(a,imp){const b=a.body,P_={};
 function ragBody(rd){const s=rd.s,j={};for(const k of RJ)j[k]=rd.P[k].p;
  const Rc=vnorm(vsub(j.shR,j.shL)),Uc=vnorm(vsub(j.chest,j.pel)),Fc=vnorm(vcross(Rc,Uc)),Rp=vnorm(vsub(j.hipR,j.hipL)),Fp=vnorm(vcross(Rp,Uc));
  const Uh=vnorm(vsub(j.head,j.neck)),Fh=vnorm(vsub(Fc,vmul(Uh,vdot(Fc,Uh)))),Rh=vcross(Uh,Fh);
- for(const k of["L","R"]){const f=j["ft"+k];j["toe"+k]=V(f.x+Fp.x*9*s.scale,f.y+Fp.y*9*s.scale,Math.max(1,f.z-2))}
+ for(const k of["L","R"]){const f=j["ft"+k];j["toe"+k]=V(f.x+Fp.x*9*s.scale,f.y+Fp.y*9*s.scale,Math.max(1,f.z-2));j["heel"+k]=V(f.x-Fp.x*3.5*s.scale,f.y-Fp.y*3.5*s.scale,Math.max(1,f.z-2))}
  return{s,j,Fc,Rc,Uc,Fp,Rp,Fh,Rh,Uh,cape:rd.cape,plume:rd.plume,dead:true}}
 const BONES=[["hipL","knL"],["knL","ftL"],["hipR","knR"],["knR","ftR"],["shL","elL"],["elL","haL"],["shR","elR"],["elR","haR"]];
 const debris=[];   // loose bones, skulls, ribcages, dropped weapons
@@ -473,38 +482,47 @@ function playerUpdate(dt){
  if(a.dead){a.deadT+=dt;return}
  let mx=0,my=0;if(keys.has("w")||keys.has("arrowup"))my-=1;if(keys.has("s")||keys.has("arrowdown"))my+=1;if(keys.has("a")||keys.has("arrowleft"))mx-=1;if(keys.has("d")||keys.has("arrowright"))mx+=1;
  if(stick.id!==null){mx=stick.x;my=stick.y}const ml=Math.hypot(mx,my);if(ml>1){mx/=ml;my/=ml}
- // facing: toward the cursor, otherwise toward travel; turn rate depends on what the body is doing
  let want=a.face;if(mouse.on&&now-mouse.t<3&&!touchUI){const hx=mouse.x+camX-a.x,hy=mouse.y+camY-(a.y-70);want=Math.atan2(hy/FY,hx)}else if(ml>.15)want=Math.atan2(my/FY,mx);
- const act=a.anim&&a.anim.t>.4&&a.anim.t<.8;const rate=act?3:a.anim?7:12;a.face+=clamp(angTo(a.face,want),-rate*dt,rate*dt);
+ const an0=a.anim,locked=an0&&an0.t>an0.def.tm[1]&&an0.t<an0.def.tm[3];const rate=locked?2:an0?6:a.dash>0?4:12;a.face+=clamp(angTo(a.face,want),-rate*dt,rate*dt);
  a.look=clamp(angTo(a.face,want),-.6,.6);
  attackQ-=dt;a.comboT-=dt;a.dashCd-=dt;a.inv-=dt;a.hurt-=dt;a.flash-=dt;a.stagger-=dt;
  const holdG=keys.has("k")||guardM||guardT;
- if(holdG&&!a.guard&&!a.anim&&a.stagger<=0&&a.st>5){a.guard=true;a.guardT0=now}if(!holdG||a.anim||a.st<=0)a.guard=false;
- // attack chain with input buffering
- if(attackQ>0&&a.stagger<=0&&a.dash<=0&&a.st>=6&&(!a.anim||a.anim.t>.62)){
-  const idx=a.anim||a.comboT>0?(a.combo+1)%3:0;a.combo=idx;a.anim={def:SW[COMBO[idx]],t:0,lunged:false};a.hitSet=new Set();a.trail=[];attackQ=0;a.st-=6;a.guard=false}
- if(dashQ&&a.dashCd<=0&&a.st>=20&&a.stagger<=0){a.st-=20;a.dash=.2;a.dashCd=.5;a.inv=.28;a.anim=null;a.guard=false;
-  const[dx,dy]=ml>.15?[mx,my]:worldDir(a.face);const l=Math.hypot(dx,dy)||1;a.dashV=[dx/l*720,dy/l*720];burst(a.x,a.y,2,12,["#55b04f","#a2e07c","#3a2e24"],90,{life:.7,up:30,upR:60,sz:2})}
+ if(holdG&&!a.guard&&!a.anim&&a.stagger<=0&&a.dash<=0&&a.st>5){a.guard=true;a.guardT0=now;a.gPose=rnd()<.5?KBLOCK:KHANG;b.pzv-=25}
+ if(!holdG||a.anim||a.st<=0)a.guard=false;
+ // attacks: a three-hit chain, buffered, each a full committed swing
+ if(attackQ>0&&a.stagger<=0&&a.dash<=0&&a.st>=8&&(!a.anim||a.anim.t>a.anim.def.tm[3]-.06)){
+  const chain=!!a.anim||a.comboT>0;a.combo=chain?(a.combo+1)%3:0;const key=a.combo===0?(rnd()<.5?"A":"D"):a.combo===1?"B":"C";
+  a.anim={def:SW[key],t:0,lunged:false};a.hitSet=new Set();a.trail=[];attackQ=0;a.st-=8;a.guard=false}
+ // dash: lunge forward, side-step, or hop back depending on direction relative to facing
+ if(dashQ&&a.dashCd<=0&&a.st>=20&&a.stagger<=0){
+  a.st-=20;a.dashCd=.55;a.inv=.3;a.anim=null;a.guard=false;
+  const[dx,dy]=ml>.15?[mx,my]:worldDir(a.face+Math.PI),l=Math.hypot(dx,dy)||1,rel=angTo(a.face,Math.atan2(dy/FY,dx));
+  a.dashKind=Math.abs(rel)<.9?"f":Math.abs(rel)>2.2?"b":"s";const spd={f:760,b:560,s:650}[a.dashKind];
+  a.dashDur=a.dashKind==="b"?.3:.22;a.dash=a.dashDur;a.dashV=[dx/l*spd,dy/l*spd];b.slide=true;b.pzv-=60;
+  if(a.dashKind==="s")b.lsv-=Math.sign(rel)*9;if(a.dashKind==="f")b.lfv+=5;if(a.dashKind==="b")b.lfv-=5;
+  burst(a.x,a.y,2,12,["#55b04f","#a2e07c","#3a2e24"],90,{life:.7,up:30,upR:60,sz:2})}
  dashQ=false;
  let pose=KG,spd=215,actDef=null;
  if(a.stagger>0){pose=KHIT;spd=40}
- else if(a.dash>0){a.dash-=dt;pose=KDASH;a.vx=a.dashV[0]*(.4+a.dash/.2*.6);a.vy=a.dashV[1]*(.4+a.dash/.2*.6);a.ghostT-=dt;if(a.ghostT<=0){a.ghostT=.03;a.ghosts.push({b:{...b,j:{...b.j}},t:0})}}
- else if(a.anim){const an=a.anim,d=an.def;an.t+=dt/d.dur;pose=sampleSwing(d,Math.min(an.t,1),KG);spd=70;
-  if(!an.lunged&&an.t>=d.lungeT){an.lunged=true;const[fx,fy]=worldDir(a.face);a.vx+=fx*d.push;a.vy+=fy*d.push}
-  if(an.t>=d.act[0]&&an.t<=d.act[1])actDef=d;
-  if(an.t>=1){a.anim=null;a.comboT=.35}}
- else if(a.guard){pose=KBLOCK;spd=95;a.st=Math.max(0,a.st-4*dt)}
+ else if(a.dash>0){a.dash-=dt;const u=clamp(1-a.dash/a.dashDur,0,1);pose=a.dashKind==="f"?KDF:a.dashKind==="b"?KDB:KDS;
+  a.vx=a.dashV[0]*(.25+.75*(1-u*u));a.vy=a.dashV[1]*(.25+.75*(1-u*u));b.hop=a.dashKind==="b"?Math.sin(Math.PI*u)*13*a.s.scale:0;
+  a.ghostT-=dt;if(a.ghostT<=0){a.ghostT=.03;a.ghosts.push({b:{...b,j:{...b.j}},t:0})}
+  if(a.dash<=0){b.slide=false;b.hop=0;b.pzv-=a.dashKind==="b"?130:80;burst(a.x,a.y,1,8,["#5a4a3a","#7a6a52"],50,{life:.6,up:20,upR:40,sz:3,g:120,kind:"dust"})}}
+ else if(a.anim){const an=a.anim,d=an.def;an.t+=dt/d.dur;pose=arcPose(d,Math.min(an.t,1),a.gPose&&a.guard?a.gPose:KG);spd=45;
+  if(!an.lunged&&an.t>=d.lungeT){an.lunged=true;const[fx,fy]=worldDir(a.face);a.vx+=fx*d.push;a.vy+=fy*d.push;b.pzv-=d.heavy?45:22}
+  if(d.dmg>0&&an.t>=d.act[0]&&an.t<=d.act[1])actDef=d;
+  if(an.t>=1){a.anim=null;a.comboT=.4}}
+ else if(a.guard){pose=a.gPose;spd=95;a.st=Math.max(0,a.st-4*dt)}
  else if(ml>.15&&Math.hypot(a.vx,a.vy)>120)pose=KRUN;
- if(a.dash<=0){const k=a.stagger>0?3:a.anim?6:11;a.vx=lerp(a.vx,mx*spd,1-Math.exp(-dt*k));a.vy=lerp(a.vy,my*spd,1-Math.exp(-dt*k))}
+ if(a.dash<=0){const k=a.stagger>0?3:a.anim?5:11;a.vx=lerp(a.vx,mx*spd,1-Math.exp(-dt*k));a.vy=lerp(a.vy,my*spd,1-Math.exp(-dt*k))}
  moveEnt(a,dt);
  if(!a.anim&&!a.guard&&a.dash<=0)a.st=Math.min(a.stMax,a.st+30*dt);if(now-a.lastHit>4)a.hp=Math.min(a.hpMax,a.hp+a.hpMax*.012*dt);
  a.prevSeg=a.body.hand?bladeSeg(a):null;
  bodyUpdate(b,a,dt,pose,(p,sp)=>{if(sp>150)burst(p.x,p.y*FY,1,3,["#5a4a3a","#7a6a52"],30,{life:.5,up:20,upR:40,sz:2.5,g:120,kind:"dust"})});
  if(actDef&&a.anim)for(const e of foes){if(e.dead||e.state==="rise"||a.hitSet.has(e))continue;const q=sweep(a,e);if(q){a.hitSet.add(e);hitFoe(e,q,actDef);if(!a.anim)break}}
- if(a.anim){const[c0,c1]=bladeSeg(a);a.trail.push({a:c0,b:c1,t:now});}while(a.trail.length&&now-a.trail[0].t>.16)a.trail.shift();
+ if(a.anim&&a.anim.t>a.anim.def.tm[0]&&a.anim.t<a.anim.def.tm[3]+.05){const[c0,c1]=bladeSeg(a);a.trail.push({a:c0,b:c1,t:now})}while(a.trail.length&&now-a.trail[0].t>.2)a.trail.shift();
  for(const g of a.ghosts)g.t+=dt;while(a.ghosts.length&&a.ghosts[0].t>.25)a.ghosts.shift();
- // trample the grass under each foot
- for(const ft of b.feet)if(!ft.step){const cx=Math.floor(ft.pos.x/CW),cy=Math.floor(ft.pos.y*FY/CH);for(let y=cy-1;y<=cy;y++)for(let x=cx-1;x<=cx+1;x++)if(x>=0&&y>=0&&x<WC&&y<HC)TR[y*WC+x]=1}
+ for(const ft of b.feet)if(!ft.step&&!ft.swing){const cx=Math.floor(ft.pos.x/CW),cy=Math.floor(ft.pos.y*FY/CH);for(let y=cy-1;y<=cy;y++)for(let x=cx-1;x<=cx+1;x++)if(x>=0&&y>=0&&x<WC&&y<HC)TR[y*WC+x]=1}
 }
 function hitFoe(e,q,d){
  const crit=rnd()<.15,front=Math.abs(angTo(e.face,Math.atan2((PL.y-e.y)/FY,PL.x-e.x)))<1.1;
@@ -512,7 +530,7 @@ function hitFoe(e,q,d){
  if(e.shield&&front&&!d.heavy&&e.state!=="attack"&&e.stagger<=0&&rnd()<.55){ // shield block: blade bounces off
   e.block=.35;sparks(qx,qy,q.z,14,200);burst(qx,qy,q.z,6,["#7c5434","#b98a58"],120,{life:1,sz:2.5});PL.anim=null;PL.stagger=.22;leanKick(PL,e.x,e.y,5);
   const[fx,fy]=worldDir(PL.face);PL.vx-=fx*160;PL.vy-=fy*160;shake=Math.max(shake,4);hitStop=.05;addNum(e.x,e.y-e.s.height-20,"BLOCK","#9fb6cc",false);return}
- const dmg=Math.round((90+PL.lv*14+rnd()*55)*d.dmg*(crit?1.9:1));e.hp-=dmg;e.flash=.1;e.poise-=d.heavy?2:1;e.jaw=1;
+ const rip=now<(PL.riposte||0);if(rip){PL.riposte=0;addNum(e.x,e.y-e.s.height-34,"RIPOSTE","#7fe0ff",true)}const dmg=Math.round((90+PL.lv*14+rnd()*55)*d.dmg*(crit?1.9:1)*(rip?1.6:1));e.hp-=dmg;e.body.pzv-=d.heavy?90:55;e.flash=.1;e.poise-=d.heavy?2:1;e.jaw=1;
  const[fx,fy]=worldDir(PL.face),m=e.s.mass;e.vx+=fx*(d.push*1.4)/m;e.vy+=fy*(d.push*1.4)/m;leanKick(e,PL.x,PL.y,(d.heavy?11:7)/m);
  if(e.poise<=0&&e.hp>0){e.stagger=d.heavy?.8:.45;e.state="stagger";e.anim=null;e.poise=e.poiseMax}
  sparks(qx,qy,q.z,crit?16:9,crit?260:180);burst(qx,qy,q.z,crit?10:5,["#efe8d6","#bdb29a","#ffffff"],150,{life:1.6,sz:2.5});
@@ -524,10 +542,10 @@ function killFoe(e,fx,fy,push){e.dead=true;PL.kills++;e.rag=makeRagdoll(e,V(fx*(
 function hurtPlayer(e,dmg,q){const a=PL;if(a.inv>0||a.dead)return;
  const toE=Math.atan2((e.y-a.y)/FY,e.x-a.x),front=Math.abs(angTo(a.face,toE))<1.25;const qx=q?PX(q):a.x,qy=q?q.y*FY:a.y,qz=q?q.z:90;
  if(a.guard&&front){const perfect=now-a.guardT0<.2;
-  if(perfect){sparks(qx,qy,qz,30,320);e.stagger=1.1;e.state="stagger";e.anim=null;leanKick(e,a.x,a.y,10);tScale=.25;shake=8;addNum(a.x,a.y-a.s.height-24,"PARRY","#7fe0ff",true);a.st=Math.min(a.stMax,a.st+25);return}
-  const cost=e.kind==="brute"?55:22;a.st-=cost;sparks(qx,qy,qz,16,220);leanKick(a,e.x,e.y,6);const[fx,fy]=worldDir(e.face);a.vx+=fx*150;a.vy+=fy*150;shake=Math.max(shake,4);hitStop=.05;
+  if(perfect){sparks(qx,qy,qz,30,320);a.anim={def:SW.P,t:0,lunged:true};a.hitSet=new Set();a.trail=[];a.riposte=now+1.3;a.guard=false;e.stagger=1.1;e.state="stagger";e.anim=null;leanKick(e,a.x,a.y,10);tScale=.25;shake=8;addNum(a.x,a.y-a.s.height-24,"PARRY","#7fe0ff",true);a.st=Math.min(a.stMax,a.st+25);return}
+  const cost=e.kind==="brute"?55:22;a.st-=cost;a.body.recv[0]-=e.kind==="brute"?260:170;a.body.recv[2]-=80;a.body.pzv-=e.kind==="brute"?110:60;sparks(qx,qy,qz,16,220);leanKick(a,e.x,e.y,6);const[fx,fy]=worldDir(e.face);a.vx+=fx*150;a.vy+=fy*150;shake=Math.max(shake,4);hitStop=.05;
   if(a.st<0){a.st=0;a.guard=false;a.stagger=.6;addNum(a.x,a.y-a.s.height-24,"GUARD BROKEN","#ff8a6a",false)}else return}
- a.hp-=dmg;a.hurt=.25;a.inv=.5;a.flash=.1;a.lastHit=now;a.anim=null;a.stagger=.3;shake=Math.max(shake,8);hitStop=.06;
+ a.hp-=dmg;a.hurt=.25;a.inv=.5;a.flash=.1;a.lastHit=now;a.anim=null;a.stagger=.3;a.body.pzv-=80;shake=Math.max(shake,8);hitStop=.06;
  const[fx,fy]=worldDir(e.face);a.vx+=fx*260;a.vy+=fy*260;leanKick(a,e.x,e.y,9);addNum(a.x,a.y-a.s.height-20,"-"+dmg,"#ff5a5a",false);
  sparks(qx,qy,qz,10,200,["#ff6a6a","#d4283c","#ffd0a0"]);burst(qx,qy,qz,8,["#b0182a","#7a0f1e"],120,{life:1.5,sz:2.5});
  if(a.hp<=0){a.hp=0;a.dead=true;a.deadT=0;document.getElementById("dead").hidden=false;a.rag=makeRagdoll(a,V(fx*260,fy/FY*260,60));dropWeapon(a);ragdolls.push(a.rag)}}
@@ -550,7 +568,7 @@ function foeUpdate(e,dt){
  else if(e.state==="circle"){const want=reach*1.25,radial=clamp((dist-want)/40,-1,1);mvx=dx/dist*radial-dy/dist*e.circleDir*.8;mvy=dy/dist*radial+dx/dist*e.circleDir*.8;spd*=.6;
   if(e.t>e.circleT&&e.atkCd<=0&&dist<reach*1.6){e.state="attack";e.anim={def:SW[brute?"X":"S"],t:0,lunged:false};e.hit=false;e.trail=[]}
   if(dist>reach*2.4)e.state="approach"}
- else if(e.state==="attack"){const an=e.anim,d=an.def;const rate=an.t<d.wind?.85:1;an.t+=dt/d.dur*rate;pose=sampleSwing(d,Math.min(1,an.t),G0);spd=0;turn=an.t<d.wind?3.5:.5;
+ else if(e.state==="attack"){const an=e.anim,d=an.def;const rate=an.t<d.wind?.85:1;an.t+=dt/d.dur*rate;pose=arcPose(d,Math.min(1,an.t),G0);spd=0;turn=an.t<d.wind?3.5:.5;
   if(an.t<d.wind&&dist>reach*.8){mvx=dx/dist;mvy=dy/dist;spd=brute?40:55}
   if(!an.lunged&&an.t>=d.lungeT){an.lunged=true;const[fx,fy]=worldDir(e.face);e.vx+=fx*d.push/e.s.mass*1.4;e.vy+=fy*d.push/e.s.mass*1.4;e.jaw=1}
   e.act=!e.hit&&an.t>=d.act[0]&&an.t<=d.act[1];
@@ -566,7 +584,7 @@ function foeUpdate(e,dt){
  e.look=Math.sin(now*7+e.seed)*.08+(Math.sin(now*1.3+e.seed*3)>.96?.5:0);
  bodyUpdate(b,e,dt,pose);
  if(e.act&&!PL.dead){const q=sweep(e,PL);if(q){e.hit=true;e.act=false;hurtPlayer(e,Math.round((brute?150:62)+PL.lv*(brute?16:9)+rnd()*20),q)}}
- if(e.anim){const[c0,c1]=bladeSeg(e);e.trail.push({a:c0,b:c1,t:now})}while(e.trail.length&&now-e.trail[0].t>.14)e.trail.shift();
+ if(e.anim&&e.anim.t>e.anim.def.tm[1]&&e.anim.t<e.anim.def.tm[3]+.04){const[c0,c1]=bladeSeg(e);e.trail.push({a:c0,b:c1,t:now})}while(e.trail.length&&now-e.trail[0].t>.18)e.trail.shift();
 }
 function separate(){const all=[PL,...foes].filter(a=>!a.dead);for(let i=0;i<all.length;i++)for(let k=i+1;k<all.length;k++){const a=all[i],b=all[k];
  const dx=b.x-a.x,dy=(b.y-a.y)/FY,d=Math.hypot(dx,dy),m=(a.s.radius+b.s.radius)*.9;if(d<m&&d>0){const push=(m-d),wa=b.s.mass/(a.s.mass+b.s.mass),wb=1-wa;
@@ -614,11 +632,22 @@ const MAT={steel:["#f7fafd","#b6c1ce","#55606c"],dsteel:["#c5ced8","#7b8693","#3
  leather:["#96694a","#5e3e28","#28180e"],gold:["#fff2b2","#d9b04a","#74541a"],bone:["#fffbf2","#e2d8bf","#938870"],boneD:["#eadfc4","#b3a68a","#655b48"],
  rust:["#cbb8a4","#8c7a68","#433830"],wood:["#bb8c5a","#7c5434","#3a2213"],cloth:["#7e6c54","#4e4232","#211c14"],horn:["#f6eedc","#c9bd9e","#6a5f48"],dark:["#2a2a30","#141418","#060608"]};
 const LS=[-.55,-.83];
-function mkO(c,opt){const t=opt.tint,f=opt.flash;return{c,tint:t,flash:f,m:k=>t?[t,t,t]:f?["#ffffff","#ffffff","#dfe8f5"]:MAT[k]}}
+const dimC=new Map();function dimHex(h,k){const key=h+k;let v=dimC.get(key);if(v)return v;const c=hexRGB(h);v="#"+c.map(x=>Math.round(clamp(x*k,0,1)*255).toString(16).padStart(2,"0")).join("");dimC.set(key,v);return v}
+function mkO(c,opt){const t=opt.tint,f=opt.flash;const o={c,tint:t,flash:f,dim:1,m:k=>{const m=t?[t,t,t]:f?["#ffffff","#ffffff","#dfe8f5"]:MAT[k];if(o.dim===1||t)return m;const q=Math.round(o.dim*20)/20;return m.map(x=>dimHex(x,q))}};return o}
+const METAL=new Set(["steel","dsteel","gold","rust"]);
+function castShadow(o,b){const c=o.c,j=b.j,g=p=>[p.x+p.z*.42,p.y*FY+p.z*.17];c.beginPath();
+ for(const[x,y]of[["hipL","knL"],["knL","ftL"],["hipR","knR"],["knR","ftR"],["shL","elL"],["elL","haL"],["shR","elR"],["elR","haR"],["shL","shR"],["hipL","hipR"],["chest","head"]]){const A=g(j[x]),B=g(j[y]);c.moveTo(A[0],A[1]);c.lineTo(B[0],B[1])}
+ if(b.hand&&b.dir){const A=g(b.hand),B=g(vmad(b.hand,b.dir,b.s.blade));c.moveTo(A[0],A[1]);c.lineTo(B[0],B[1])}
+ c.lineCap="round";c.lineJoin="round";c.lineWidth=7.5*b.s.scale;c.strokeStyle="rgba(0,0,0,.34)";c.stroke();
+ const P0=g(j.pel),C0=g(j.chest);c.beginPath();c.moveTo(P0[0],P0[1]);c.lineTo(C0[0],C0[1]);c.lineWidth=b.s.shW*1.5;c.strokeStyle="rgba(0,0,0,.2)";c.stroke()}
+function aoHull(o,pts3,amt){const h=hull2(pts3.map(p=>[PX(p),PY(p)]));let y0=1e9,y1=-1e9;for(const p of h){y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1])}const c=o.c;
+ c.beginPath();h.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();const g=c.createLinearGradient(0,y0,0,y1);g.addColorStop(0,"rgba(255,255,255,.08)");g.addColorStop(.5,"rgba(0,0,0,0)");g.addColorStop(1,`rgba(0,0,0,${amt})`);c.fillStyle=g;c.fill()}
 function capsule(o,a,b2,r0,r1,mat){const c=o.c,x0=PX(a),y0=PY(a),x1=PX(b2),y1=PY(b2),dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy)||.001,an=Math.atan2(dy,dx),nx=-dy/L,ny=dx/L;
  c.beginPath();c.arc(x1,y1,r1,an-Math.PI/2,an+Math.PI/2);c.arc(x0,y0,r0,an+Math.PI/2,an+Math.PI*1.5);c.closePath();const m=o.m(mat);
  if(o.tint)c.fillStyle=m[1];else{const r=Math.max(r0,r1),s=(nx*LS[0]+ny*LS[1])>0?1:-1,mx=(x0+x1)/2,my=(y0+y1)/2,g=c.createLinearGradient(mx+nx*r*s,my+ny*r*s,mx-nx*r*s,my-ny*r*s);
-  g.addColorStop(0,m[0]);g.addColorStop(.4,m[1]);g.addColorStop(1,m[2]);c.fillStyle=g}c.fill()}
+  g.addColorStop(0,m[0]);g.addColorStop(.4,m[1]);g.addColorStop(1,m[2]);c.fillStyle=g}c.fill();
+ if(!o.tint&&METAL.has(mat)&&L>2){const s=(nx*LS[0]+ny*LS[1])>0?1:-1,off=Math.max(r0,r1)*.45*s;c.beginPath();c.moveTo(x0+nx*off+dx*.12,y0+ny*off+dy*.12);c.lineTo(x1+nx*off-dx*.12,y1+ny*off-dy*.12);
+  c.lineWidth=Math.max(.8,Math.min(r0,r1)*.32);c.strokeStyle=`rgba(255,255,255,${.5*o.dim})`;c.stroke()}}
 function ball(o,p,r,mat){const c=o.c,x=PX(p),y=PY(p),m=o.m(mat);if(o.tint)c.fillStyle=m[1];else{const g=c.createRadialGradient(x-r*.4,y-r*.45,r*.1,x,y,r);g.addColorStop(0,m[0]);g.addColorStop(.5,m[1]);g.addColorStop(1,m[2]);c.fillStyle=g}
  c.beginPath();c.arc(x,y,Math.max(.3,r),0,TAU);c.fill()}
 function dot2(o,p,r,col){const c=o.c;c.beginPath();c.arc(PX(p),PY(p),r,0,TAU);c.fillStyle=col;c.fill()}
@@ -653,13 +682,13 @@ function paintBlade(o,hand,dir,len,sc,kind,Rfb){
 
 function paintKnight(c,b,opt={}){
  const o=mkO(c,opt),j=b.j,s=b.s,sc=s.scale,parts=[],P_=(d,fn)=>parts.push([d,fn]);
- if(!opt.tint&&!b.dead){const gp=V(j.pel.x,j.pel.y,0);shadow(o,PX(gp),PY(gp),26*sc,9*sc);for(const k of["L","R"]){const f=j["ft"+k];shadow(o,PX(f),f.y*FY,9*sc,4*sc)}}
+ if(!opt.tint)castShadow(o,b);if(!opt.tint&&!b.dead){const gp=V(j.pel.x,j.pel.y,0);shadow(o,PX(gp),PY(gp),22*sc,8*sc);for(const k of["L","R"]){const f=j["ft"+k];shadow(o,PX(f),f.y*FY,9*sc,4*sc)}}
  for(const k of["L","R"]){const hip=j["hip"+k],kn=j["kn"+k],ft=j["ft"+k],toe=j["toe"+k];
-  P_((hip.y+kn.y+ft.y)/3-.4,()=>{capsule(o,hip,kn,7*sc,5.6*sc,"steel");capsule(o,kn,ft,5.2*sc,4.2*sc,"steel");capsule(o,ft,toe,4.2*sc,3*sc,"dsteel");
+  P_((hip.y+kn.y+ft.y)/3-.4,()=>{capsule(o,hip,kn,7*sc,5.6*sc,"steel");capsule(o,kn,ft,5.2*sc,4.2*sc,"steel");const heel=j["heel"+k];capsule(o,heel,toe,4.6*sc,3.6*sc,"dsteel");ball(o,ft,4.4*sc,"dsteel");
    ball(o,kn,4.8*sc,"steel");if(!o.tint){const sh=vlerp(kn,ft,.45);line3(o,[vmad(sh,b.Fp,4.5*sc),vmad(vlerp(kn,ft,.85),b.Fp,3.6*sc)],1,o.m("steel")[0])}})}
  // torso: convex hull of elliptical cross-sections, then plate seams, belt, ridge
  P_(j.pel.y,()=>{const pts=[];for(const[u,w,d]of[[0,s.waistW*.98,s.chestD*.9],[.4,s.waistW*.88,s.chestD*.88],[.82,s.shW*.92,s.chestD*1.08],[1,s.shW*.75,s.chestD]])pts.push(...ring(vlerp(j.pel,j.chest,u),b.Fc,b.Rc,w,d,14));
-  hullFill(o,pts,"steel");if(o.tint)return;
+  hullFill(o,pts,"steel");if(o.tint)return;aoHull(o,pts,.42);
   for(const u of[.5,.68,.86]){const w=lerp(s.waistW*.9,s.shW*.92,u),cen=vlerp(j.pel,j.chest,u);line3(o,arcPts(cen,b.Fc,b.Rc,b.Uc,w*1.01,s.chestD*1.06,-2.6,2.6,16,0),1.2,o.m("steel")[2])}
   if(VIS(b.Fc)>-.1)line3(o,[vmad(vlerp(j.pel,j.chest,.4),b.Fc,s.chestD*.92),vmad(vlerp(j.pel,j.chest,.92),b.Fc,s.chestD*1.1)],1.8,o.m("steel")[0]);
   const bc=vmad(j.pel,b.Uc,3*sc);line3(o,arcPts(bc,b.Fp,b.Rp,b.Uc,s.waistW*1.02,s.chestD*.96,-3.1,3.1,20,0),3.4*sc,o.m("leather")[1]);
@@ -698,7 +727,7 @@ function paintKnight(c,b,opt={}){
     const m=o.m("red");const col=o.tint?m[1]:outer?(l>.6?mixHex(m[1],m[0],(l-.6)/.4):mixHex(m[2],m[1],l/.6)):mixHex("#2a0408",m[2],l);
     cc.beginPath();cc.moveTo(PX(p00),PY(p00));cc.lineTo(PX(p01),PY(p01));cc.lineTo(PX(p11),PY(p11));cc.lineTo(PX(p10),PY(p10));cc.closePath();cc.fillStyle=col;cc.fill();cc.lineWidth=.8;cc.strokeStyle=col;cc.stroke()}
    if(!o.tint){const bot=[];for(let k=0;k<CAPE_C;k++)bot.push(C[(CAPE_R-1)*CAPE_C+k].p);line3(o,bot,1.5,o.m("gold")[1])}})}
- parts.sort((a,b2)=>a[0]-b2[0]);for(const p of parts)p[1]();
+ parts.sort((a,b2)=>a[0]-b2[0]);for(const p of parts){o.dim=clamp(1+(p[0]-j.pel.y)*.04,.62,1.08);p[1]()}o.dim=1;
 }
 const hexC=new Map();function mixHex(a,b,t){const A=hexRGB(a),B=hexRGB(b);return`rgb(${(A[0]+(B[0]-A[0])*t)*255|0},${(A[1]+(B[1]-A[1])*t)*255|0},${(A[2]+(B[2]-A[2])*t)*255|0})`}
 
@@ -729,9 +758,9 @@ function ribsPaint(o,pel,chest,Fc,Rc,Uc,s,sc){
 }
 function paintSkel(c,b,e,opt={}){
  const o=mkO(c,opt),j=b.j,s=b.s,sc=s.scale,parts=[],P_=(d,fn)=>parts.push([d,fn]),brute=e.kind==="brute";
- if(!b.dead&&!opt.tint){const gp=V(j.pel.x,j.pel.y,0);shadow(o,PX(gp),PY(gp)+(b.sink||0),24*sc,8*sc)}
+ if(!opt.tint&&!b.sink)castShadow(o,b);if(!b.dead&&!opt.tint){const gp=V(j.pel.x,j.pel.y,0);shadow(o,PX(gp),PY(gp)+(b.sink||0),20*sc,7*sc)}
  for(const k of["L","R"]){const hip=j["hip"+k],kn=j["kn"+k],ft=j["ft"+k],toe=j["toe"+k];
-  P_((hip.y+kn.y+ft.y)/3-.4,()=>{boneSeg(o,hip,kn,2.7*sc,sc);boneSeg(o,kn,ft,2.4*sc,sc);for(const sd of[-1,0,1])line3(o,[ft,vmad(toe,b.Rp,sd*2.2*sc)],1.5*sc,o.m("bone")[1]);
+  P_((hip.y+kn.y+ft.y)/3-.4,()=>{boneSeg(o,hip,kn,2.7*sc,sc);boneSeg(o,kn,ft,2.4*sc,sc);line3(o,[ft,j["heel"+k]],1.8*sc,o.m("bone")[1]);for(const sd of[-1,0,1])line3(o,[ft,vmad(toe,b.Rp,sd*2.2*sc)],1.5*sc,o.m("bone")[1]);
    if(brute)capsule(o,vlerp(kn,ft,.15),vlerp(kn,ft,.75),4.2*sc,3.6*sc,"rust")})}
  P_(j.pel.y-.2,()=>{for(const sd of[-1,1]){const p=vmad(vmad(j.pel,b.Rp,sd*5.5*sc),b.Uc,2.5*sc);ball(o,p,5.6*sc,"bone");if(!o.tint)dot2(o,vmad(vmad(p,b.Fp,3*sc),b.Uc,-2*sc),1.8*sc,"#0d0a08")}
   ball(o,vmad(j.pel,b.Fp,-2*sc),3.4*sc,"boneD")});
@@ -754,7 +783,7 @@ function paintSkel(c,b,e,opt={}){
    line3(o,[...pts,pts[0]],2.2*sc,o.m("rust")[1])})}
  if(b.hand&&!opt.noSword){const kind=brute?"axe":"rsword",mid=vmad(b.hand,b.dir,s.blade*.5);P_(mid.y+(b.dir.y>0?.6:-.1),()=>paintBlade(o,b.hand,b.dir,brute?s.blade*1.05:s.blade,sc,kind,b.Rc))}
  P_(j.head.y+.35,()=>skullPaint(o,j.head,b.Fh,b.Rh,b.Uh,s.headR,sc,b.dead?null:(e.state==="attack"&&e.anim&&e.anim.t<(e.anim.def.wind||0)?"#ff7a5a":"#ff2a2a"),e.jaw||0,e.seed||1,brute));
- parts.sort((a,b2)=>a[0]-b2[0]);for(const p of parts)p[1]();
+ parts.sort((a,b2)=>a[0]-b2[0]);for(const p of parts){o.dim=clamp(1+(p[0]-j.pel.y)*.04,.62,1.08);p[1]()}o.dim=1;
 }
 function paintDebris(c,d){const o=mkO(c,{}),sc=d.s.scale,A=d.a.p,B=d.b.p;c.globalAlpha=clamp(d.fade??1,0,1);
  if(d.kind==="bone")boneSeg(o,A,B,2.5*sc,sc);
@@ -846,7 +875,7 @@ function render(){
    else if(EA[k+1]>150&&EA[k-1]>150&&EA[k+cols]>150&&EA[k-cols]>150){gx=(lum(k+1)-lum(k-1))*255;gy=(lum(k+cols)-lum(k-cols))*255;if(Math.abs(gx)+Math.abs(gy)<120){gx=gy=0}}
    if(gx||gy){const ang=((Math.atan2(-gx/CW,-gy/CH)*180/Math.PI)%180+180)%180;g=ang<22||ang>158?(gy>0?C_US:C_DA):ang<68?C_SL:ang<112?C_PI:C_BS}
    if(!g)g=entGlyph(clamp(L*.9+cov*.18,0,.999),h2(wx,wy,5));
-   const s=1/Math.max(m/255,.42);R.put(Math.round((wx*CW-camX)*DPR)-OX,dy,g,rr/255*s,gg/255*s,bb/255*s,Math.min(1,cov*1.25))}}
+   const s=1.32;R.put(Math.round((wx*CW-camX)*DPR)-OX,dy,g,rr/255*s,gg/255*s,bb/255*s,Math.min(1,cov*1.3))}}
  // ---- fireflies
  for(const f of flies){const b=.5+.5*Math.sin(now*2.2+f.b);stampRGB(f.x,f.y,b>.5?2:1,b>.7?[1,1,1]:[.55,.88,1],.55+.45*b)}
  // ---- canopy
@@ -892,7 +921,7 @@ function portrait(){const pc=$("portrait"),pw=40,ph=56,d=Math.min(2,devicePixelR
 let last=performance.now();
 function frame(ts){const t0=performance.now();let dt=Math.min(.05,(ts-last)/1000);last=ts;frameN++;
  if(hitStop>0){hitStop-=dt;dt*=.08}tScale=lerp(tScale,1,1-Math.exp(-dt*2.5));dt*=tScale;
- now+=dt;update(dt);render();
+ if(!window.__pause){now+=dt;update(dt)}render();
  msAcc+=performance.now()-t0;fpsN++;if(ts-fpsT>500){$("fps").textContent=Math.round(fpsN*1000/(ts-fpsT));$("ms").textContent=(msAcc/fpsN).toFixed(1);fpsN=0;msAcc=0;fpsT=ts}
  if(frameN%6===0)hud();
  requestAnimationFrame(frame)}
@@ -900,7 +929,7 @@ function start(){resize();genWorld();camX=clamp(PL.x-VW/2,0,WPX-VW);camY=clamp(P
  for(let i=0;i<10;i++)bodyUpdate(PL.body,PL,1/30,KG);for(let i=0;i<4;i++)spawnFoe();
  for(const f of flies){f.x=camX+rnd()*VW;f.y=camY+rnd()*VH}portrait();hud();
  addEventListener("resize",resize);requestAnimationFrame(t=>{last=t;fpsT=t;requestAnimationFrame(frame)})}
-window.__game={PL,foes,ragdolls,debris,kill:i=>{const e=foes[i];killFoe(e,1,0,200)},hurt:(i,d)=>hurtPlayer(foes[i],d,null),get glyphs(){return R.count()},gl:!!gl,step:(n,dt=1/60)=>{for(let i=0;i<n;i++){now+=dt;update(dt)}}};
+window.__game={SW,PL,foes,get cam(){return[camX,camY]},ragdolls,debris,kill:i=>{const e=foes[i];killFoe(e,1,0,200)},hurt:(i,d)=>hurtPlayer(foes[i],d,null),get glyphs(){return R.count()},gl:!!gl,step:(n,dt=1/60)=>{for(let i=0;i<n;i++){now+=dt;update(dt)}}};
 (document.fonts&&document.fonts.load?Promise.race([document.fonts.load('10px "JetBrains Mono"'),new Promise(r=>setTimeout(r,1500))]):Promise.resolve()).then(start,start);
 })();
 </script>
